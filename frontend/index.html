@@ -11,9 +11,6 @@
     <!-- Header -->
     <header class="header">
       <div class="logo"><span class="icon icon-logo" aria-hidden="true"></span>CookAssist</div>
-      <div class="header-actions">
-        <button id="btn-new-recipe" class="btn btn-secondary">+ New Recipe</button>
-      </div>
     </header>
 
     <!-- Main layout -->
@@ -59,7 +56,6 @@
           </div>
 
           <div id="ingest-error" class="error-msg hidden"></div>
-          <div id="ingest-loading" class="loading hidden">Processing...</div>
         </div>
 
         <div class="sidebar-footer">
@@ -122,11 +118,6 @@
               <div class="timer-step" id="timer-step">Waiting for a timed step</div>
             </div>
             <div class="timer-display" id="timer-display">00:00</div>
-            <div class="timer-controls">
-              <button id="btn-timer-pause" class="btn btn-sm">Pause</button>
-              <button id="btn-timer-reset" class="btn btn-sm">Reset</button>
-              <button id="btn-timer-dismiss" class="btn btn-sm">Dismiss</button>
-            </div>
           </div>
 
           <!-- Chat messages -->
@@ -142,6 +133,7 @@
             <div class="chat-input-row">
               <input type="text" id="chat-input" placeholder='Ask anything — or say "next step"...' autocomplete="off" />
               <button id="btn-send" class="btn btn-primary">Send</button>
+              <button id="btn-mic-toggle" class="btn btn-icon" title="Start live voice" aria-label="Start live voice" aria-pressed="false"><span class="icon icon-button" aria-hidden="true"></span></button>
               <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice" aria-label="Toggle voice"><span class="icon icon-button" aria-hidden="true"></span></button>
             </div>
           </div>
@@ -189,6 +181,7 @@
   <script type="module" src="/static/js/timer.js"></script>
   <script type="module" src="/static/js/tts.js"></script>
   <script type="module" src="/static/js/chat.js"></script>
+  <script type="module" src="/static/js/realtime.js"></script>
   <script type="module" src="/static/js/app.js"></script>
 </body>
 </html>

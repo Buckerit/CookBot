@@ -14,7 +14,6 @@ function showError(msg) {
 }
 
 function setLoading(on) {
-  el("ingest-loading").classList.toggle("hidden", !on);
   el("btn-ingest-text").disabled = on;
   el("btn-ingest-url").disabled = on;
   el("btn-ingest-file").disabled = on;

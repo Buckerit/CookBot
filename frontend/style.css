@@ -106,9 +106,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex: 1;
+  flex: 1 1 auto;
 }
 .recipe-list-scroll {
+  flex: 1;
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
@@ -137,7 +138,6 @@ body {
 .recipe-item.active { border-color: #bba56c; background: linear-gradient(180deg, #f8f1df, #f2ecdf); }
 .recipe-item-copy { min-width: 0; flex: 1; }
 .recipe-item-title { font-weight: 600; font-size: 13px; }
-.recipe-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .recipe-delete {
   width: 30px;
   height: 30px;
@@ -186,6 +186,19 @@ body {
 
 .tab-content { display: none; flex-direction: column; gap: 8px; }
 .tab-content.active { display: flex; }
+#ingest-panel {
+  flex: 0 0 250px;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+.tabs {
+  margin-bottom: 14px;
+}
+.tab-content {
+  min-height: 150px;
+  justify-content: flex-start;
+}
 
 /* === Chat panel === */
 .chat-panel {
@@ -241,7 +254,7 @@ body {
   flex-shrink: 0;
 }
 .step-instruction { font-size: 16px; font-weight: 600; line-height: 1.5; }
-.step-tips { margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+.step-tips { margin-top: 10px; font-size: 15px; line-height: 1.65; color: var(--text-muted); }
 .step-tips span::before { content: "💡 "; }
 .step-ingredients { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ingredient-chip {
@@ -339,15 +352,6 @@ body {
   white-space: nowrap;
   text-shadow: 0 6px 20px rgba(125, 155, 119, 0.16);
 }
-.timer-controls {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
 .timer-prepared {
   box-shadow:
     0 20px 40px rgba(142, 132, 103, 0.14),
@@ -355,8 +359,7 @@ body {
 }
 
 .timer-live .step-card,
-.timer-live .chat-messages,
-.timer-live .chat-input-area {
+.timer-live .chat-messages {
   filter: blur(3px);
   opacity: 0.18;
   pointer-events: none;
@@ -366,6 +369,11 @@ body {
 .timer-live .step-bar {
   opacity: 0.4;
   transition: opacity .25s ease;
+}
+
+.timer-live .chat-input-area {
+  position: relative;
+  z-index: 6;
 }
 
 /* === Chat messages === */
@@ -491,6 +499,12 @@ body {
 .btn-danger:hover { background: #efcfc7; border-color: #d69d90; }
 .btn-sm { padding: 5px 10px; font-size: 12px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-icon { padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 16px; }
+.btn-icon.active {
+  background: linear-gradient(180deg, #f0d8d2, #e8bfb3);
+  border-color: #d7a092;
+  color: #8f4033;
+  box-shadow: 0 0 0 3px rgba(214, 157, 144, 0.18);
+}
 .icon-button {
   width: 18px;
   height: 18px;
@@ -884,8 +898,13 @@ input[type="file"]::file-selector-button:hover {
   font-size: 12px;
   color: var(--text-muted);
 }
-.error-msg { color: var(--error); font-size: 12px; }
-.loading { color: var(--text-muted); font-size: 12px; animation: pulse 1.5s ease infinite; }
+.error-msg {
+  margin-top: auto;
+  padding-top: 10px;
+  text-align: center;
+  font-size: 12px;
+}
+.error-msg { color: var(--error); }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 .hidden { display: none !important; }
 .empty-hint { color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px 0; }

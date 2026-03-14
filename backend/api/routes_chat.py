@@ -25,6 +25,14 @@ async def start_session(request: StartSessionRequest):
     return session
 
 
+@router.get("/sessions/{session_id}", response_model=ChatSession)
+async def get_session(session_id: str):
+    session = chat_service.load_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
+
+
 @router.websocket("/ws/chat/{session_id}")
 async def chat_websocket(websocket: WebSocket, session_id: str):
     await websocket.accept()

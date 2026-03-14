@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import shutil
 from datetime import datetime
 from typing import Optional
 
+from backend.config import settings
 from backend.models.ingest import IngestStatus
 from backend.services.recipe_store import save_recipe
 
@@ -21,6 +23,16 @@ def _update(task_id: str, **kwargs) -> None:
     for k, v in kwargs.items():
         setattr(status, k, v)
     status.updated_at = datetime.utcnow()
+
+
+def _cleanup_task_media(task_id: str) -> None:
+    # Remove per-task video/audio/frame artifacts after the pipeline finishes.
+    for path in (
+        settings.downloads_path / task_id,
+        settings.media_path / task_id,
+    ):
+        if path.exists():
+            shutil.rmtree(path, ignore_errors=True)
 
 
 async def run_url_pipeline(task_id: str, url: str) -> None:
@@ -74,3 +86,5 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
         logger.exception("Pipeline failed for task %s", task_id)
         error_msg = str(exc) or type(exc).__name__
         _update(task_id, status="error", progress_message="Failed", error=f"{error_msg}\n{tb}")
+    finally:
+        _cleanup_task_media(task_id)

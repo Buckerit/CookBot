@@ -29,6 +29,18 @@ export const icons = {
       <path d="m17 9 4 6M21 9l-4 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
     </svg>
   `,
+  mic: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3.8a3.2 3.2 0 0 1 3.2 3.2v4.5a3.2 3.2 0 1 1-6.4 0V7A3.2 3.2 0 0 1 12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M6.8 10.8a5.2 5.2 0 0 0 10.4 0M12 17v3.2m-3 0h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  `,
+  micActive: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3.8a3.2 3.2 0 0 1 3.2 3.2v4.5a3.2 3.2 0 1 1-6.4 0V7A3.2 3.2 0 0 1 12 3.8Z" fill="currentColor"/>
+      <path d="M6.8 10.8a5.2 5.2 0 0 0 10.4 0M12 17v3.2m-3 0h6M18.2 7.7a5.8 5.8 0 0 1 0 7.1M20.2 5.8a8.4 8.4 0 0 1 0 10.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </svg>
+  `,
   trash: `
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M9 4h6l1 2h4v2H4V6h4l1-2Zm1 6h2v7h-2v-7Zm4 0h2v7h-2v-7ZM7 8h10l-.8 10.2A2 2 0 0 1 14.2 20H9.8a2 2 0 0 1-2-1.8L7 8Z" fill="currentColor"/>

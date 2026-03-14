@@ -13,7 +13,7 @@ from pathlib import Path
 
 from backend.utils.logging_config import setup_logging
 from backend.utils.file_utils import create_storage_dirs
-from backend.api import routes_ingest, routes_recipe, routes_chat, routes_tts
+from backend.api import routes_ingest, routes_recipe, routes_chat, routes_tts, routes_realtime
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(routes_ingest.router)
 app.include_router(routes_recipe.router)
 app.include_router(routes_chat.router)
 app.include_router(routes_tts.router)
+app.include_router(routes_realtime.router)
 
 
 @app.get("/health")

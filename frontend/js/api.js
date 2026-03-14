@@ -47,6 +47,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ recipe_id: recipeId }),
     }),
+  getSession: (sessionId) => fetchJson(`/sessions/${sessionId}`),
+
+  createRealtimeSession: async (offerSdp) => {
+    const res = await fetch(`${BASE}/realtime/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/sdp" },
+      body: offerSdp,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(typeof err.detail === "string" ? err.detail : JSON.stringify(err.detail));
+    }
+    return res.text();
+  },
 
   // TTS — returns raw response for streaming
   tts: (text) =>

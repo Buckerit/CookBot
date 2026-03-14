@@ -2,6 +2,7 @@
 
 import { icons } from "./icons.js";
 import { emitChefState } from "./chef.js";
+import { isRealtimeActive } from "./realtime.js";
 
 let _enabled = true;
 let _currentAudio = null;
@@ -20,7 +21,7 @@ export function toggleTTS() {
 }
 
 export async function speak(text) {
-  if (!_enabled || !text) return;
+  if (!_enabled || !text || isRealtimeActive()) return;
 
   // Stop any playing audio
   if (_currentAudio) {
@@ -45,11 +46,22 @@ export async function speak(text) {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     _currentAudio = new Audio(url);
-    _currentAudio.onended = () => {
-      URL.revokeObjectURL(url);
-      emitChefState("idle", "Ready when you are.");
-    };
-    await _currentAudio.play();
+    await new Promise((resolve) => {
+      _currentAudio.onended = () => {
+        URL.revokeObjectURL(url);
+        emitChefState("idle", "Ready when you are.");
+        resolve();
+      };
+      _currentAudio.onerror = () => {
+        URL.revokeObjectURL(url);
+        emitChefState("idle", "Ready when you are.");
+        resolve();
+      };
+      _currentAudio.play().catch(() => {
+        emitChefState("idle", "Ready when you are.");
+        resolve();
+      });
+    });
   } catch (e) {
     console.warn("TTS error:", e);
     emitChefState("idle", "Ready when you are.");

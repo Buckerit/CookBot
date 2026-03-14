@@ -1,7 +1,17 @@
 // chat.js — WebSocket chat + step management
 
 import { speak } from "./tts.js";
-import { startTimer } from "./timer.js";
+import {
+  addTime,
+  dismissTimer,
+  hasActiveTimer,
+  parseTimerCommand,
+  pauseTimer,
+  resetTimer,
+  resumeTimer,
+  startTimer,
+  subtractTime,
+} from "./timer.js";
 import { highlightStep } from "./recipe.js";
 import { emitChefState } from "./chef.js";
 import { icon } from "./icons.js";
@@ -10,6 +20,7 @@ let _ws = null;
 let _sessionId = null;
 let _recipe = null;
 let _pendingTimer = null;
+const _ACTIVE_SESSION_KEY = "cookassist:activeSession";
 
 const _READY_FOR_TIMER = [
   "ready",
@@ -27,6 +38,26 @@ const _READY_FOR_TIMER = [
 ];
 
 function el(id) { return document.getElementById(id); }
+function persistActiveSession() {
+  if (!_sessionId || !_recipe?.id) return;
+  localStorage.setItem(_ACTIVE_SESSION_KEY, JSON.stringify({
+    sessionId: _sessionId,
+    recipeId: _recipe.id,
+  }));
+}
+
+function clearPersistedActiveSession() {
+  localStorage.removeItem(_ACTIVE_SESSION_KEY);
+}
+
+export function getPersistedActiveSession() {
+  try {
+    return JSON.parse(localStorage.getItem(_ACTIVE_SESSION_KEY) || "null");
+  } catch (error) {
+    clearPersistedActiveSession();
+    return null;
+  }
+}
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -56,9 +87,9 @@ function formatDuration(seconds) {
   return parts.join(" ");
 }
 
-function timerPrompt(instruction, durationSeconds) {
+function timerPrompt(_instruction, durationSeconds) {
   const duration = formatDuration(durationSeconds);
-  return `The next step is: ${instruction} When you're ready, say "ready" or "start timer" and I'll start the ${duration} timer.`;
+  return `When you're ready, say "ready" or "start timer" and I'll start the ${duration} timer.`;
 }
 
 function normalize(text) {
@@ -85,6 +116,63 @@ function maybeStartPendingTimer(text) {
   return true;
 }
 
+function timerReply(message, chefState = "loading") {
+  appendBubble(message, "bot");
+  emitChefState(chefState, message, 1800);
+  void speak(message);
+}
+
+function maybeHandleTimerCommand(text) {
+  const command = parseTimerCommand(text);
+  if (!command) return false;
+
+  appendBubble(text, "user");
+
+  if (command.type === "start") {
+    startTimer(command.seconds, "Manual timer");
+    timerReply(`Starting a ${formatDuration(command.seconds)} timer now.`);
+    return true;
+  }
+
+  if (!hasActiveTimer()) {
+    timerReply("There isn't an active timer right now.", "thinking");
+    return true;
+  }
+
+  if (command.type === "pause") {
+    timerReply(pauseTimer() ? "Pausing the timer." : "The timer is already paused.", "thinking");
+    return true;
+  }
+
+  if (command.type === "resume") {
+    timerReply(resumeTimer() ? "Resuming the timer." : "The timer is already running.", "loading");
+    return true;
+  }
+
+  if (command.type === "dismiss") {
+    dismissTimer();
+    timerReply("Okay, I cleared the timer.", "idle");
+    return true;
+  }
+
+  if (command.type === "reset") {
+    timerReply(resetTimer() ? "Resetting the timer." : "I couldn't reset that timer.", "loading");
+    return true;
+  }
+
+  if (command.type === "add") {
+    timerReply(addTime(command.seconds) ? `Added ${formatDuration(command.seconds)} to the timer.` : "I couldn't update the timer.", "loading");
+    return true;
+  }
+
+  if (command.type === "subtract") {
+    timerReply(subtractTime(command.seconds) ? `Taking off ${formatDuration(command.seconds)} from the timer.` : "I couldn't update the timer.", "thinking");
+    return true;
+  }
+
+  return false;
+}
+
 function updateStepUI(payload) {
   const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds } = payload;
 
@@ -103,15 +191,31 @@ function updateStepUI(payload) {
 
   // Sidebar highlight
   highlightStep(step_index);
+  document.dispatchEvent(new CustomEvent("cookingStateUpdated", {
+    detail: {
+      recipe: _recipe,
+      step_index,
+      step_number,
+      total_steps,
+      instruction,
+      tips,
+      ingredients_used,
+      duration_seconds,
+    },
+  }));
 }
 
-function handleEvent(event) {
+async function handleEvent(event) {
   const { type, payload } = event;
 
   if (type === "step_change") {
     _pendingTimer = null;
     updateStepUI(payload);
-    speak(payload.instruction);
+    await speak(payload.instruction);
+    if (payload.spoken_follow_up) {
+      appendBubble(payload.spoken_follow_up, "bot");
+      await speak(payload.spoken_follow_up);
+    }
     if (payload.duration_seconds) {
       _pendingTimer = {
         seconds: payload.duration_seconds,
@@ -120,11 +224,11 @@ function handleEvent(event) {
       const prompt = timerPrompt(payload.instruction, payload.duration_seconds);
       appendBubble(prompt, "bot");
       emitChefState("thinking", "I can start the timer when you say ready.", 2200);
-      speak(prompt);
+      await speak(prompt);
     }
   } else if (type === "bot_message") {
     appendBubble(payload.content, "bot");
-    speak(payload.content);
+    await speak(payload.content);
   } else if (type === "timer_start") {
     _pendingTimer = {
       seconds: payload.duration_seconds,
@@ -139,6 +243,7 @@ function handleEvent(event) {
 export async function startCookingSession(recipe, sessionId) {
   _recipe = recipe;
   _sessionId = sessionId;
+  persistActiveSession();
 
   // Show chat UI
   el("chat-empty").classList.add("hidden");
@@ -154,7 +259,7 @@ export async function startCookingSession(recipe, sessionId) {
   _ws.onmessage = (e) => {
     try {
       const event = JSON.parse(e.data);
-      handleEvent(event);
+      void handleEvent(event);
     } catch (err) {
       console.error("WS parse error:", err);
     }
@@ -169,8 +274,13 @@ export async function startCookingSession(recipe, sessionId) {
   };
 }
 
+export function clearCookingSessionPersistence() {
+  clearPersistedActiveSession();
+}
+
 export function sendMessage(text) {
   if (maybeStartPendingTimer(text)) return;
+  if (maybeHandleTimerCommand(text)) return;
   if (!_ws || _ws.readyState !== WebSocket.OPEN) {
     console.warn("WebSocket not connected");
     return;
@@ -200,11 +310,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // Jump to step from sidebar click
 document.addEventListener("jumpToStep", (e) => {
   if (_ws && _ws.readyState === WebSocket.OPEN) {
-    // We can't directly set step_index via WS message without backend support.
-    // For now, send "next" repeatedly or just send the step request as a message.
-    // Simple approach: tell the bot to go to that step via text.
-    // TODO: add a dedicated WS message type for step jump
+    const stepNumber = Number(e.detail) + 1;
+    _ws.send(JSON.stringify({ text: `Go to step ${stepNumber}` }));
   }
+});
+
+document.addEventListener("voiceCommand", (e) => {
+  const text = e.detail?.text?.trim();
+  if (text) sendMessage(text);
 });
 
 document.addEventListener("timerDone", (e) => {
@@ -212,5 +325,5 @@ document.addEventListener("timerDone", (e) => {
   const message = `Your timer is done${stepText}.`;
   appendBubble(message, "bot");
   emitChefState("celebrate", "Timer's done.", 2400);
-  speak(message);
+  void speak(message);
 });

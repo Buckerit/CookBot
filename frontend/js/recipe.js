@@ -6,8 +6,10 @@ import { icon } from "./icons.js";
 let _recipes = [];
 let _selectedRecipe = null;
 let _pendingDeleteId = null;
+const _SELECTED_RECIPE_KEY = "cookassist:selectedRecipeId";
 
 export function getSelectedRecipe() { return _selectedRecipe; }
+export function getSavedSelectedRecipeId() { return localStorage.getItem(_SELECTED_RECIPE_KEY); }
 
 function el(id) {
   return document.getElementById(id);
@@ -15,6 +17,7 @@ function el(id) {
 
 function clearSelection() {
   _selectedRecipe = null;
+  localStorage.removeItem(_SELECTED_RECIPE_KEY);
   el("recipe-detail-empty").classList.remove("hidden");
   el("recipe-detail-content").classList.add("hidden");
   renderList();
@@ -46,7 +49,6 @@ function renderList() {
     <div class="recipe-item${_selectedRecipe?.id === r.id ? " active" : ""}" data-id="${r.id}">
       <div class="recipe-item-copy">
         <div class="recipe-item-title">${esc(r.title)}</div>
-        <div class="recipe-item-meta">${[r.cuisine, r.step_count ? r.step_count + " steps" : null].filter(Boolean).join(" · ")}</div>
       </div>
       <button class="recipe-delete" data-delete-id="${r.id}" title="Delete recipe" aria-label="Delete recipe">${icon("trash")}</button>
     </div>
@@ -67,11 +69,14 @@ function renderList() {
 export async function selectRecipe(id) {
   try {
     _selectedRecipe = await api.getRecipe(id);
+    localStorage.setItem(_SELECTED_RECIPE_KEY, _selectedRecipe.id);
     renderDetail(_selectedRecipe);
     renderList();  // re-render to update active state
     document.dispatchEvent(new CustomEvent("recipeSelected", { detail: _selectedRecipe }));
+    return _selectedRecipe;
   } catch (e) {
     console.error("Failed to select recipe:", e);
+    return null;
   }
 }
 
