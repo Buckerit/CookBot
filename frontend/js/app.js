@@ -1,7 +1,7 @@
 // app.js — main app orchestrator
 
 import { loadRecipeList, getSelectedRecipe, getSavedSelectedRecipeId, selectRecipe } from "./recipe.js";
-import { clearCookingSessionPersistence, getPersistedActiveSession, startCookingSession } from "./chat.js";
+import { clearCookingSessionPersistence, getPersistedActiveSession, resetCookingUi, startCookingSession } from "./chat.js";
 import { api } from "./api.js";
 import { icons } from "./icons.js";
 
@@ -11,11 +11,15 @@ let _activeCookingRecipeId = null;
 async function restoreUiState() {
   const persistedSession = getPersistedActiveSession();
   const selectedRecipeId = persistedSession?.recipeId || getSavedSelectedRecipeId();
-  if (!selectedRecipeId) return;
+  if (!selectedRecipeId) {
+    resetCookingUi();
+    return;
+  }
 
   const recipe = await selectRecipe(selectedRecipeId);
   if (!recipe) {
     clearCookingSessionPersistence();
+    resetCookingUi();
     return;
   }
 
@@ -25,6 +29,7 @@ async function restoreUiState() {
     const session = await api.getSession(persistedSession.sessionId);
     if (session.recipe_id !== recipe.id) {
       clearCookingSessionPersistence();
+      resetCookingUi();
       return;
     }
 
@@ -34,6 +39,7 @@ async function restoreUiState() {
   } catch (error) {
     console.warn("Failed to restore session:", error);
     clearCookingSessionPersistence();
+    resetCookingUi();
   }
 }
 

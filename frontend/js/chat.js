@@ -20,6 +20,7 @@ let _ws = null;
 let _sessionId = null;
 let _recipe = null;
 let _pendingTimer = null;
+let _eventQueue = Promise.resolve();
 const _ACTIVE_SESSION_KEY = "cookassist:activeSession";
 
 const _READY_FOR_TIMER = [
@@ -38,6 +39,12 @@ const _READY_FOR_TIMER = [
 ];
 
 function el(id) { return document.getElementById(id); }
+function setInputLocked(locked) {
+  const input = el("chat-input");
+  const sendButton = el("btn-send");
+  if (input) input.disabled = locked;
+  if (sendButton) sendButton.disabled = locked;
+}
 function persistActiveSession() {
   if (!_sessionId || !_recipe?.id) return;
   localStorage.setItem(_ACTIVE_SESSION_KEY, JSON.stringify({
@@ -259,7 +266,11 @@ export async function startCookingSession(recipe, sessionId) {
   _ws.onmessage = (e) => {
     try {
       const event = JSON.parse(e.data);
-      void handleEvent(event);
+      _eventQueue = _eventQueue
+        .then(() => handleEvent(event))
+        .catch((err) => {
+          console.error("WS event handling error:", err);
+        });
     } catch (err) {
       console.error("WS parse error:", err);
     }
@@ -276,6 +287,26 @@ export async function startCookingSession(recipe, sessionId) {
 
 export function clearCookingSessionPersistence() {
   clearPersistedActiveSession();
+}
+
+export function resetCookingUi() {
+  _recipe = null;
+  _sessionId = null;
+  _pendingTimer = null;
+  if (_ws) {
+    _ws.close();
+    _ws = null;
+  }
+  clearPersistedActiveSession();
+  dismissTimer();
+  el("chat-messages").innerHTML = "";
+  el("chat-active").classList.add("hidden");
+  el("chat-empty").classList.remove("hidden");
+  el("step-label").textContent = "Step 1 of ?";
+  el("progress-fill").style.width = "0%";
+  el("step-instruction").textContent = "—";
+  el("step-tips").innerHTML = "";
+  el("step-ingredients").innerHTML = "";
 }
 
 export function sendMessage(text) {
@@ -320,10 +351,19 @@ document.addEventListener("voiceCommand", (e) => {
   if (text) sendMessage(text);
 });
 
+document.addEventListener("recipeSelected", (e) => {
+  if (!e.detail) {
+    resetCookingUi();
+  }
+});
+
 document.addEventListener("timerDone", (e) => {
-  const stepText = e.detail?.stepText ? ` for "${e.detail.stepText}"` : "";
-  const message = `Your timer is done${stepText}.`;
+  const message = "Timer's up.";
   appendBubble(message, "bot");
   emitChefState("celebrate", "Timer's done.", 2400);
   void speak(message);
+});
+
+document.addEventListener("ttsSpeaking", (e) => {
+  setInputLocked(Boolean(e.detail?.speaking));
 });

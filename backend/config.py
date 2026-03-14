@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     openai_tts_voice: str = Field("alloy", env="OPENAI_TTS_VOICE")
     openai_realtime_model: str = Field("gpt-realtime", env="OPENAI_REALTIME_MODEL")
     openai_realtime_voice: str = Field("marin", env="OPENAI_REALTIME_VOICE")
+    elevenlabs_api_key: str = Field(default="", env="ELEVENLABS_API_KEY")
+    elevenlabs_voice_id: str = Field("EXAVITQu4vr4xnSDxMaL", env="ELEVENLABS_VOICE_ID")
+    elevenlabs_model_id: str = Field("eleven_flash_v2_5", env="ELEVENLABS_MODEL_ID")
     whisper_model: str = Field("whisper-1", env="WHISPER_MODEL")
 
     storage_base: str = Field("storage", env="STORAGE_BASE")

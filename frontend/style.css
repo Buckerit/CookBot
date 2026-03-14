@@ -253,6 +253,14 @@ body {
   border-radius: var(--radius);
   flex-shrink: 0;
 }
+.step-kicker {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
 .step-instruction { font-size: 16px; font-weight: 600; line-height: 1.5; }
 .step-tips { margin-top: 10px; font-size: 15px; line-height: 1.65; color: var(--text-muted); }
 .step-tips span::before { content: "💡 "; }
@@ -461,7 +469,38 @@ body {
 .detail-meta span { background: linear-gradient(180deg, var(--surface3), #f3eadc); border: 1px solid var(--border); padding: 2px 8px; border-radius: 99px; }
 .detail-meta span { display: inline-flex; align-items: center; gap: 6px; }
 .detail-meta .icon { width: 13px; height: 13px; }
-#detail-ingredients { padding-left: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+#detail-ingredients {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detail-ingredient-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(208, 198, 181, 0.55);
+  white-space: nowrap;
+}
+.detail-ingredient-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-ingredient-amount {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
 #detail-steps { padding-left: 20px; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
 #detail-steps li { cursor: pointer; padding: 4px 0; }
 #detail-steps li:hover { color: var(--accent); }
@@ -701,13 +740,13 @@ body {
   transform: rotate(-24deg);
 }
 .chef-spoon {
-  top: 132px;
+  top: 122px;
   right: 26px;
   width: 10px;
-  height: 58px;
+  height: 54px;
   background: #9b6d45;
   border-radius: 999px;
-  transform: rotate(-20deg);
+  transform: rotate(24deg);
   transform-origin: center bottom;
 }
 .chef-spoon::before {

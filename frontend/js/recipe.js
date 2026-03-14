@@ -21,6 +21,7 @@ function clearSelection() {
   el("recipe-detail-empty").classList.remove("hidden");
   el("recipe-detail-content").classList.add("hidden");
   renderList();
+  document.dispatchEvent(new CustomEvent("recipeSelected", { detail: null }));
 }
 
 export async function loadRecipeList() {
@@ -139,27 +140,18 @@ function renderDetail(recipe) {
 
   const ingList = el("detail-ingredients");
   ingList.innerHTML = recipe.ingredients.map(ing => {
-    const parts = [ing.quantity, ing.unit, ing.name, ing.notes].filter(Boolean);
-    return `<li>${esc(parts.join(" "))}</li>`;
+    const amount = [ing.quantity, ing.unit].filter(Boolean).join(" ").trim();
+    return `
+      <li class="detail-ingredient-item">
+        <span class="detail-ingredient-name">${esc(ing.name)}</span>
+        ${amount ? `<span class="detail-ingredient-amount">${esc(amount)}</span>` : ""}
+      </li>
+    `;
   }).join("");
-
-  const stepList = el("detail-steps");
-  stepList.innerHTML = recipe.steps.map((s, i) => `
-    <li data-step="${i}">${esc(s.instruction)}</li>
-  `).join("");
-
-  // Click on step in detail panel to jump chat to that step
-  stepList.querySelectorAll("li").forEach(li => {
-    li.addEventListener("click", () => {
-      document.dispatchEvent(new CustomEvent("jumpToStep", { detail: parseInt(li.dataset.step) }));
-    });
-  });
 }
 
 export function highlightStep(index) {
-  document.querySelectorAll("#detail-steps li").forEach((li, i) => {
-    li.classList.toggle("current-step", i === index);
-  });
+  void index;
 }
 
 function esc(s) {
@@ -167,9 +159,6 @@ function esc(s) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  el("btn-delete-recipe")?.addEventListener("click", () => {
-    if (_selectedRecipe) openDeleteModal(_selectedRecipe.id);
-  });
   el("btn-confirm-cancel")?.addEventListener("click", closeDeleteModal);
   el("btn-confirm-delete")?.addEventListener("click", confirmDeleteRecipe);
   el("confirm-modal")?.addEventListener("click", (event) => {

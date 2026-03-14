@@ -47,6 +47,14 @@ _AMBIGUOUS_AMOUNT_HINTS = [
     (("egg", "eggs"), "start with 1 egg"),
 ]
 
+_NAV_TRANSITIONS = {
+    "next": "Great, let's move to the next step.",
+    "prev": "Sure, let's go back one step.",
+    "repeat": "Of course. Here's that step again.",
+    "restart": "Let's start again from the beginning.",
+    "jump": "Sure, let's jump to that step.",
+}
+
 
 def _session_path(session_id: str) -> Path:
     return settings.sessions_path / f"{session_id}.json"
@@ -71,7 +79,9 @@ def create_session(recipe: Recipe) -> ChatSession:
 
 
 def _detect_nav_intent(text: str) -> Optional[str]:
-    normalized = text.strip().lower().rstrip("!.,?")
+    normalized = re.sub(r"[!.,?]", "", text.strip().lower())
+    normalized = re.sub(r"\b(?:please|pls|plz)\b", "", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
     if normalized in _NEXT_INTENTS:
         return "next"
     if normalized in _PREV_INTENTS:
@@ -80,6 +90,12 @@ def _detect_nav_intent(text: str) -> Optional[str]:
         return "repeat"
     if normalized in _RESTART_INTENTS:
         return "restart"
+    if any(phrase in normalized for phrase in ("next step", "go next", "move on", "keep going", "continue on")):
+        return "next"
+    if any(phrase in normalized for phrase in ("previous step", "step before", "go back", "back one")):
+        return "prev"
+    if any(phrase in normalized for phrase in ("repeat that", "say that again", "repeat step")):
+        return "repeat"
     return None
 
 
@@ -178,6 +194,14 @@ async def process_message(
 
     jump_to = _detect_step_jump_intent(user_text, len(recipe.steps))
     if jump_to is not None:
+        yield {
+            "type": "bot_message",
+            "payload": {
+                "content": _NAV_TRANSITIONS["jump"],
+                "step_index": session.current_step_index,
+                "transition": True,
+            },
+        }
         session.current_step_index = jump_to
         event = _step_message(recipe, session.current_step_index)
         save_session(session)
@@ -197,6 +221,16 @@ async def process_message(
     # 1. Check for navigation intents first (no GPT needed)
     intent = _detect_nav_intent(user_text)
     if intent:
+        transition = _NAV_TRANSITIONS.get(intent)
+        if transition:
+            yield {
+                "type": "bot_message",
+                "payload": {
+                    "content": transition,
+                    "step_index": session.current_step_index,
+                    "transition": True,
+                },
+            }
         if intent == "next":
             if session.current_step_index < len(recipe.steps):
                 session.current_step_index += 1

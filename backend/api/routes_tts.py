@@ -1,7 +1,7 @@
 import logging
 import time
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend.services.tts_service import synthesize_speech
