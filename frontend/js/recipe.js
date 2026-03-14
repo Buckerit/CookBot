@@ -1,11 +1,24 @@
 // recipe.js — recipe list and detail panel
 
 import { api } from "./api.js";
+import { icon } from "./icons.js";
 
 let _recipes = [];
 let _selectedRecipe = null;
+let _pendingDeleteId = null;
 
 export function getSelectedRecipe() { return _selectedRecipe; }
+
+function el(id) {
+  return document.getElementById(id);
+}
+
+function clearSelection() {
+  _selectedRecipe = null;
+  el("recipe-detail-empty").classList.remove("hidden");
+  el("recipe-detail-content").classList.add("hidden");
+  renderList();
+}
 
 export async function loadRecipeList() {
   const list = document.getElementById("recipe-list");
@@ -24,20 +37,30 @@ export function addRecipeToList(recipe) {
 }
 
 function renderList() {
-  const list = document.getElementById("recipe-list");
+  const list = el("recipe-list");
   if (!_recipes.length) {
-    list.innerHTML = `<p class="empty-hint">No recipes yet. Add one below!</p>`;
+    list.innerHTML = `<div class="empty-recipes">${icon("logoHat", "icon icon-empty-recipes")}<p class="empty-hint">No recipes yet. Add one below!</p></div>`;
     return;
   }
   list.innerHTML = _recipes.map(r => `
     <div class="recipe-item${_selectedRecipe?.id === r.id ? " active" : ""}" data-id="${r.id}">
-      <div class="recipe-item-title">${esc(r.title)}</div>
-      <div class="recipe-item-meta">${[r.cuisine, r.step_count ? r.step_count + " steps" : null].filter(Boolean).join(" · ")}</div>
+      <div class="recipe-item-copy">
+        <div class="recipe-item-title">${esc(r.title)}</div>
+        <div class="recipe-item-meta">${[r.cuisine, r.step_count ? r.step_count + " steps" : null].filter(Boolean).join(" · ")}</div>
+      </div>
+      <button class="recipe-delete" data-delete-id="${r.id}" title="Delete recipe" aria-label="Delete recipe">${icon("trash")}</button>
     </div>
   `).join("");
 
-  list.querySelectorAll(".recipe-item").forEach(el => {
-    el.addEventListener("click", () => selectRecipe(el.dataset.id));
+  list.querySelectorAll(".recipe-item").forEach((item) => {
+    item.addEventListener("click", () => selectRecipe(item.dataset.id));
+  });
+
+  list.querySelectorAll(".recipe-delete").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openDeleteModal(button.dataset.deleteId);
+    });
   });
 }
 
@@ -52,29 +75,70 @@ export async function selectRecipe(id) {
   }
 }
 
+async function deleteRecipe(recipeId) {
+  const recipe = _recipes.find((entry) => entry.id === recipeId) || _selectedRecipe;
+  if (!recipeId || !recipe) return;
+
+  try {
+    await api.deleteRecipe(recipeId);
+    _recipes = _recipes.filter((entry) => entry.id !== recipeId);
+    if (_selectedRecipe?.id === recipeId) {
+      clearSelection();
+    } else {
+      renderList();
+    }
+  } catch (e) {
+    console.error("Failed to delete recipe:", e);
+    closeDeleteModal();
+    window.alert(`Could not delete recipe: ${e.message}`);
+  }
+}
+
+function openDeleteModal(recipeId) {
+  const recipe = _recipes.find((entry) => entry.id === recipeId) || _selectedRecipe;
+  if (!recipe) return;
+  _pendingDeleteId = recipeId;
+  el("confirm-message").textContent = `Delete "${recipe.title}" from My Recipes?`;
+  el("confirm-modal").classList.remove("hidden");
+  el("confirm-modal").setAttribute("aria-hidden", "false");
+}
+
+function closeDeleteModal() {
+  _pendingDeleteId = null;
+  el("confirm-modal").classList.add("hidden");
+  el("confirm-modal").setAttribute("aria-hidden", "true");
+}
+
+async function confirmDeleteRecipe() {
+  if (!_pendingDeleteId) return;
+  const recipeId = _pendingDeleteId;
+  closeDeleteModal();
+  await deleteRecipe(recipeId);
+}
+
 function renderDetail(recipe) {
-  document.getElementById("recipe-detail-empty").classList.add("hidden");
-  const content = document.getElementById("recipe-detail-content");
+  el("recipe-detail-empty").classList.add("hidden");
+  const content = el("recipe-detail-content");
   content.classList.remove("hidden");
 
-  document.getElementById("detail-title").textContent = recipe.title;
+  el("detail-title").textContent = recipe.title;
 
-  const meta = document.getElementById("detail-meta");
+  const meta = el("detail-meta");
   const metaItems = [
-    recipe.servings && `🍽 ${recipe.servings}`,
-    recipe.prep_time_minutes && `⏱ Prep ${recipe.prep_time_minutes}m`,
-    recipe.cook_time_minutes && `🔥 Cook ${recipe.cook_time_minutes}m`,
-    recipe.cuisine && `🌍 ${recipe.cuisine}`,
+    recipe.servings && `${icon("servings")} ${recipe.servings}`,
+    recipe.prep_time_minutes && `${icon("timer")} Prep ${recipe.prep_time_minutes}m`,
+    recipe.cook_time_minutes && `${icon("flame")} Cook ${recipe.cook_time_minutes}m`,
+    recipe.cuisine && `${icon("globe")} ${recipe.cuisine}`,
   ].filter(Boolean);
   meta.innerHTML = metaItems.map(m => `<span>${m}</span>`).join("");
 
-  const ingList = document.getElementById("detail-ingredients");
+  const ingList = el("detail-ingredients");
   ingList.innerHTML = recipe.ingredients.map(ing => {
     const parts = [ing.quantity, ing.unit, ing.name, ing.notes].filter(Boolean);
     return `<li>${esc(parts.join(" "))}</li>`;
   }).join("");
 
-  const stepList = document.getElementById("detail-steps");
+  const stepList = el("detail-steps");
   stepList.innerHTML = recipe.steps.map((s, i) => `
     <li data-step="${i}">${esc(s.instruction)}</li>
   `).join("");
@@ -96,3 +160,14 @@ export function highlightStep(index) {
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  el("btn-delete-recipe")?.addEventListener("click", () => {
+    if (_selectedRecipe) openDeleteModal(_selectedRecipe.id);
+  });
+  el("btn-confirm-cancel")?.addEventListener("click", closeDeleteModal);
+  el("btn-confirm-delete")?.addEventListener("click", confirmDeleteRecipe);
+  el("confirm-modal")?.addEventListener("click", (event) => {
+    if (event.target === el("confirm-modal")) closeDeleteModal();
+  });
+});

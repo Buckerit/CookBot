@@ -38,6 +38,7 @@ async def extract_recipe_from_video(
     ocr_results: list[tuple[int, str]],
     vision_captions: list[tuple[int, str]],
     source_url: str = "",
+    video_title: str = "",
 ) -> Recipe:
     request_start = time.perf_counter()
     print("[timing] request received: extract_recipe_from_video")
@@ -67,6 +68,10 @@ async def extract_recipe_from_video(
     data = parse_llm_recipe_json(raw, "video extractor")
     if source_url:
         data["source_url"] = source_url
+
+    # LLM may return null for title — fall back to the YouTube video title
+    if not data.get("title"):
+        data["title"] = video_title[:100] if video_title else "Untitled Recipe"
 
     recipe = Recipe.model_validate(data)
     logger.info("Extracted recipe: %s (%d steps, %d ingredients)", recipe.title, len(recipe.steps), len(recipe.ingredients))

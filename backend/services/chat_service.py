@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import orjson
 import time
 from pathlib import Path
@@ -24,6 +25,31 @@ _RESTART_INTENTS = {"start over", "beginning", "restart", "from the top", "reset
 
 # Substitution trigger phrases
 _SUB_TRIGGERS = ["don't have", "dont have", "allergic", "substitute", "instead of", "alternative to", "out of"]
+
+# Timer trigger phrases
+_TIMER_TRIGGERS = re.compile(
+    r"(?:set|start|create|add|begin|run)?\s*a?\s*timer\s*(?:for|of)?\s*"
+    r"(?:(\d+)\s*h(?:ours?)?)?\s*(?:(\d+)\s*m(?:in(?:utes?)?)?)?\s*(?:(\d+)\s*s(?:ec(?:onds?)?)?)?",
+    re.IGNORECASE,
+)
+
+
+def _detect_timer_intent(text: str) -> Optional[tuple[int, str]]:
+    """Detect timer set requests. Returns (seconds, label) or None."""
+    lower = text.lower()
+    timer_keywords = ("timer", "alarm", "remind me", "set a", "start a", "start timing", "time it", "time this")
+    if not any(w in lower for w in timer_keywords):
+        return None
+
+    seconds = extract_duration_seconds(text)
+    if not seconds:
+        return None
+
+    # Extract optional label (e.g. "set a 5 minute timer for the pasta")
+    label_match = re.search(r"(?:timer for|alarm for|remind me (?:to|for))\s+(?:the\s+)?(.+)", text, re.IGNORECASE)
+    label = label_match.group(1).strip()[:40] if label_match else ""
+
+    return seconds, label
 
 
 def _session_path(session_id: str) -> Path:
@@ -108,7 +134,24 @@ async def process_message(
     request_start = time.perf_counter()
     print("[timing] request received: chat message")
 
-    # 1. Check for navigation intents first (no GPT needed)
+    # 1. Check for timer intent (no GPT needed)
+    timer_intent = _detect_timer_intent(user_text)
+    if timer_intent:
+        seconds, label = timer_intent
+        yield {
+            "type": "timer_start",
+            "payload": {"duration_seconds": seconds, "label": label or "Timer"},
+        }
+        yield {
+            "type": "bot_message",
+            "payload": {
+                "content": f"Starting a {label + ' ' if label else ''}timer for {seconds // 60} minute{'s' if seconds // 60 != 1 else ''}{f' {seconds % 60} seconds' if seconds % 60 else ''}. I'll ring when it's done!",
+                "step_index": session.current_step_index,
+            },
+        }
+        return
+
+    # 2. Check for navigation intents (no GPT needed)
     intent = _detect_nav_intent(user_text)
     if intent:
         if intent == "next":
@@ -131,7 +174,7 @@ async def process_message(
             if duration:
                 yield {
                     "type": "timer_start",
-                    "payload": {"duration_seconds": duration, "step_index": session.current_step_index},
+                    "payload": {"duration_seconds": duration, "label": f"Step {session.current_step_index + 1}", "step_index": session.current_step_index},
                 }
         yield event
         print(f"[timing] total response time took {time.perf_counter() - request_start:.2f}s")

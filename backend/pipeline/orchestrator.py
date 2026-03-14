@@ -36,11 +36,19 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
 
         # Step 2: Extract audio + keyframes
         _update(task_id, progress_message="Extracting audio and frames...")
-        audio_path, keyframe_paths = await extractor.extract_media(video_path, task_id)
+        audio_path, keyframe_paths, duration = await extractor.extract_media(video_path, task_id)
 
         # Step 3: Transcribe
         _update(task_id, progress_message="Transcribing audio...")
         transcript = await transcriber.transcribe_audio(audio_path)
+
+        # If the transcript is sparse (<30 words/min), double the frame rate for better visual coverage
+        word_count = len(transcript.split())
+        words_per_minute = (word_count / duration * 60) if duration > 0 else 0
+        if words_per_minute < 30:
+            logger.info("Sparse transcript (%.0f wpm) — extracting denser frames", words_per_minute)
+            _update(task_id, progress_message="Sparse audio detected, extracting more frames...")
+            keyframe_paths = await extractor.extract_more_keyframes(video_path, task_id, fps=1.0)
 
         # Step 4: OCR frames (run concurrently with vision)
         _update(task_id, progress_message="Analyzing frames...")
@@ -50,8 +58,9 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
 
         # Step 5: Entity extraction
         _update(task_id, progress_message="Extracting recipe...")
+        video_title = video_path.stem  # yt-dlp names the file after the video title
         recipe = await entity_extractor.extract_recipe_from_video(
-            transcript, ocr_results, vision_captions, source_url=url
+            transcript, ocr_results, vision_captions, source_url=url, video_title=video_title
         )
 
         # Step 6: Save

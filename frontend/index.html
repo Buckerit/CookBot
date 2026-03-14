@@ -10,7 +10,7 @@
   <div id="app">
     <!-- Header -->
     <header class="header">
-      <div class="logo">🍳 CookAssist</div>
+      <div class="logo"><span class="icon icon-logo" aria-hidden="true"></span>CookAssist</div>
       <div class="header-actions">
         <button id="btn-new-recipe" class="btn btn-secondary">+ New Recipe</button>
       </div>
@@ -20,10 +20,12 @@
     <main class="main">
       <!-- Left panel: recipe list + ingest -->
       <aside class="sidebar" id="sidebar">
-        <div class="sidebar-section">
+        <div class="sidebar-section sidebar-section-recipes">
           <h3>My Recipes</h3>
-          <div id="recipe-list" class="recipe-list">
-            <p class="empty-hint">No recipes yet. Add one below!</p>
+          <div class="recipe-list-scroll">
+            <div id="recipe-list" class="recipe-list">
+              <p class="empty-hint">No recipes yet. Add one below!</p>
+            </div>
           </div>
         </div>
 
@@ -45,7 +47,7 @@
 
           <!-- URL tab -->
           <div class="tab-content" id="tab-url">
-            <input type="url" id="ingest-url" placeholder="https://youtube.com/watch?v=..." />
+            <input type="text" id="ingest-url" placeholder="https://youtube.com/watch?v=..." inputmode="url" />
             <button id="btn-ingest-url" class="btn btn-primary">Process Video</button>
             <div id="url-status" class="status-box hidden"></div>
           </div>
@@ -59,12 +61,40 @@
           <div id="ingest-error" class="error-msg hidden"></div>
           <div id="ingest-loading" class="loading hidden">Processing...</div>
         </div>
+
+        <div class="sidebar-footer">
+          <div id="chef-assistant" class="chef-assistant" data-state="idle">
+            <div class="chef-sprite" aria-hidden="true">
+              <div class="chef-pixels">
+                <span class="chef-shadow"></span>
+                <span class="chef-hat"></span>
+                <span class="chef-hat-band"></span>
+                <span class="chef-hair"></span>
+                <span class="chef-face"></span>
+                <span class="chef-eye eye-left"></span>
+                <span class="chef-eye eye-right"></span>
+                <span class="chef-cheek cheek-left"></span>
+                <span class="chef-cheek cheek-right"></span>
+                <span class="chef-body"></span>
+                <span class="chef-apron"></span>
+                <span class="chef-arm arm-left"></span>
+                <span class="chef-arm arm-right"></span>
+                <span class="chef-spoon"></span>
+                <span class="chef-steam steam-1"></span>
+                <span class="chef-steam steam-2"></span>
+                <span class="chef-thought thought-1"></span>
+                <span class="chef-thought thought-2"></span>
+                <span class="chef-mouth"></span>
+              </div>
+            </div>
+          </div>
+        </div>
       </aside>
 
       <!-- Center: chat -->
       <section class="chat-panel" id="chat-panel">
         <div id="chat-empty" class="chat-empty">
-          <div class="empty-icon">👨‍🍳</div>
+          <div class="empty-icon"><span class="icon icon-empty" aria-hidden="true"></span></div>
           <h2>Select a recipe to start cooking</h2>
           <p>I'll guide you step-by-step, hands-free.</p>
         </div>
@@ -87,10 +117,15 @@
 
           <!-- Timer widget -->
           <div class="timer-widget hidden" id="timer-widget">
+            <div class="timer-copy">
+              <div class="timer-kicker" id="timer-kicker">Active Timer</div>
+              <div class="timer-step" id="timer-step">Waiting for a timed step</div>
+            </div>
             <div class="timer-display" id="timer-display">00:00</div>
             <div class="timer-controls">
               <button id="btn-timer-pause" class="btn btn-sm">Pause</button>
               <button id="btn-timer-reset" class="btn btn-sm">Reset</button>
+              <button id="btn-timer-dismiss" class="btn btn-sm">Dismiss</button>
             </div>
           </div>
 
@@ -107,7 +142,7 @@
             <div class="chat-input-row">
               <input type="text" id="chat-input" placeholder='Ask anything — or say "next step"...' autocomplete="off" />
               <button id="btn-send" class="btn btn-primary">Send</button>
-              <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice">🔊</button>
+              <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice" aria-label="Toggle voice"><span class="icon icon-button" aria-hidden="true"></span></button>
             </div>
           </div>
         </div>
@@ -119,17 +154,36 @@
         <div id="recipe-detail-content" class="hidden">
           <h2 id="detail-title"></h2>
           <div class="detail-meta" id="detail-meta"></div>
+          <div class="detail-actions detail-actions-primary">
+            <button id="btn-start-cooking" class="btn btn-primary btn-full">Start Cooking</button>
+          </div>
           <h4>Ingredients</h4>
           <ul id="detail-ingredients"></ul>
           <h4>Steps</h4>
           <ol id="detail-steps"></ol>
-          <button id="btn-start-cooking" class="btn btn-primary btn-full">Start Cooking</button>
+          <div class="detail-actions">
+            <button id="btn-delete-recipe" class="btn btn-danger btn-full">Delete Recipe</button>
+          </div>
         </div>
       </aside>
     </main>
   </div>
 
+  <div id="confirm-modal" class="modal-overlay hidden" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-kicker">Confirm Delete</div>
+      <h3 id="confirm-title">Delete this recipe?</h3>
+      <p id="confirm-message" class="modal-message">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="btn-confirm-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="btn-confirm-delete" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/static/js/api.js"></script>
+  <script type="module" src="/static/js/icons.js"></script>
+  <script type="module" src="/static/js/chef.js"></script>
   <script type="module" src="/static/js/recipe.js"></script>
   <script type="module" src="/static/js/ingest.js"></script>
   <script type="module" src="/static/js/timer.js"></script>

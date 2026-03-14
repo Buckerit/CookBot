@@ -2,7 +2,6 @@ import hashlib
 import logging
 import time
 from pathlib import Path
-from typing import AsyncIterator
 
 from backend.config import settings
 from backend.dependencies import get_openai_client
@@ -32,7 +31,7 @@ async def synthesize_speech(text: str) -> AsyncIterator[bytes]:
         return _from_file()
 
     client = get_openai_client()
-    logger.info("TTS API call for %d chars", len(text))
+    logger.info("TTS API call (%d chars)", len(text))
 
     async def _from_api() -> AsyncIterator[bytes]:
         tts_start = time.perf_counter()
@@ -52,4 +51,7 @@ async def synthesize_speech(text: str) -> AsyncIterator[bytes]:
         logger.debug("TTS cached to %s", cached.name)
         print(f"[timing] total response time took {time.perf_counter() - request_start:.2f}s")
 
-    return _from_api()
+    data = response.content
+    cached.write_bytes(data)
+    logger.debug("TTS cached %d bytes → %s", len(data), cached.name)
+    return data
