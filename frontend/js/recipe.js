@@ -33,11 +33,31 @@ function renderList() {
     <div class="recipe-item${_selectedRecipe?.id === r.id ? " active" : ""}" data-id="${r.id}">
       <div class="recipe-item-title">${esc(r.title)}</div>
       <div class="recipe-item-meta">${[r.cuisine, r.step_count ? r.step_count + " steps" : null].filter(Boolean).join(" · ")}</div>
+      <button class="btn-delete-recipe" data-id="${r.id}" title="Delete recipe">✕</button>
     </div>
   `).join("");
 
   list.querySelectorAll(".recipe-item").forEach(el => {
-    el.addEventListener("click", () => selectRecipe(el.dataset.id));
+    el.addEventListener("click", (e) => {
+      if (e.target.closest(".btn-delete-recipe")) return;
+      selectRecipe(el.dataset.id);
+    });
+  });
+
+  list.querySelectorAll(".btn-delete-recipe").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if (!confirm("Delete this recipe?")) return;
+      await api.deleteRecipe(id);
+      _recipes = _recipes.filter(r => r.id !== id);
+      if (_selectedRecipe?.id === id) {
+        _selectedRecipe = null;
+        document.getElementById("recipe-detail-empty").classList.remove("hidden");
+        document.getElementById("recipe-detail-content").classList.add("hidden");
+      }
+      renderList();
+    });
   });
 }
 

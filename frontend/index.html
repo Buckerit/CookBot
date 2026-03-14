@@ -85,13 +85,19 @@
             <div class="step-ingredients" id="step-ingredients"></div>
           </div>
 
-          <!-- Timer widget -->
-          <div class="timer-widget hidden" id="timer-widget">
-            <div class="timer-display" id="timer-display">00:00</div>
-            <div class="timer-controls">
-              <button id="btn-timer-pause" class="btn btn-sm">Pause</button>
-              <button id="btn-timer-reset" class="btn btn-sm">Reset</button>
-            </div>
+          <!-- Timers area -->
+          <div class="timers-area" id="timers-area">
+            <!-- Manual timer form -->
+            <form id="manual-timer-form" class="manual-timer-form">
+              <span class="timer-form-label">Set timer:</span>
+              <input id="timer-h" type="number" min="0" max="23" placeholder="0h" />
+              <input id="timer-m" type="number" min="0" max="59" placeholder="0m" />
+              <input id="timer-s" type="number" min="0" max="59" placeholder="0s" />
+              <input id="timer-label" type="text" placeholder="Label (optional)" />
+              <button type="submit" class="btn btn-sm btn-primary">Start</button>
+            </form>
+            <!-- Active timers -->
+            <div id="timers-container" class="timers-container hidden"></div>
           </div>
 
           <!-- Chat messages -->
@@ -100,14 +106,16 @@
           <!-- Input -->
           <div class="chat-input-area">
             <div class="nav-hints">
-              <span class="hint">say "next"</span>
-              <span class="hint">say "previous"</span>
-              <span class="hint">say "repeat"</span>
+              <span class="hint">🎙 "next step"</span>
+              <span class="hint">🎙 "go back"</span>
+              <span class="hint">🎙 "repeat"</span>
+              <span class="hint">🎙 "how long does this take?"</span>
             </div>
             <div class="chat-input-row">
-              <input type="text" id="chat-input" placeholder='Ask anything — or say "next step"...' autocomplete="off" />
+              <input type="text" id="chat-input" placeholder='Ask anything — or just speak...' autocomplete="off" />
               <button id="btn-send" class="btn btn-primary">Send</button>
-              <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice">🔊</button>
+              <button id="btn-mic" class="btn btn-icon hidden" title="Click to start voice input">🎤</button>
+              <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice readback">🔊</button>
             </div>
           </div>
         </div>
@@ -129,6 +137,7 @@
     </main>
   </div>
 
+  <script type="module" src="/static/js/voice.js"></script>
   <script type="module" src="/static/js/api.js"></script>
   <script type="module" src="/static/js/recipe.js"></script>
   <script type="module" src="/static/js/ingest.js"></script>

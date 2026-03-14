@@ -77,8 +77,17 @@ body {
 }
 .recipe-item:hover { border-color: var(--accent); }
 .recipe-item.active { border-color: var(--accent); background: #f9731612; }
-.recipe-item-title { font-weight: 600; font-size: 13px; }
+.recipe-item { position: relative; }
+.recipe-item-title { font-weight: 600; font-size: 13px; padding-right: 20px; }
 .recipe-item-meta { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.btn-delete-recipe {
+  position: absolute; top: 8px; right: 8px;
+  background: none; border: none; color: var(--text-muted);
+  font-size: 12px; cursor: pointer; padding: 0 3px;
+  opacity: 0; transition: opacity .15s, color .15s;
+}
+.recipe-item:hover .btn-delete-recipe { opacity: 1; }
+.btn-delete-recipe:hover { color: var(--error); }
 
 /* === Tabs === */
 .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
@@ -306,6 +315,100 @@ input[type="file"] { color: var(--text-muted); font-size: 12px; }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
 .hidden { display: none !important; }
 .empty-hint { color: var(--text-muted); font-size: 12px; text-align: center; padding: 12px 0; }
+
+/* === Timers area === */
+.timers-area {
+  padding: 8px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.manual-timer-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.timer-form-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.manual-timer-form input[type="number"] {
+  width: 52px; padding: 5px 6px; font-size: 13px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); text-align: center;
+}
+.manual-timer-form input[type="text"] {
+  flex: 1; min-width: 80px; padding: 5px 8px; font-size: 13px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text);
+}
+
+.timers-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.timer-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  min-width: 150px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.timer-card.timer-done { border-color: var(--accent); background: #f9731610; }
+.timer-card-top { display: flex; justify-content: space-between; align-items: center; }
+.timer-card-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.timer-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 0 2px; }
+.timer-remove:hover { color: var(--error); }
+.timer-card-display { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent); line-height: 1; }
+.timer-track { height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.timer-progress { height: 100%; background: var(--accent); border-radius: 99px; transition: width .25s linear; }
+.timer-card-btns { display: flex; gap: 6px; }
+.timer-card-btns button {
+  flex: 1; padding: 4px 6px; font-size: 11px; font-weight: 600;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); cursor: pointer;
+}
+.timer-card-btns button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* === Alarm banner === */
+.alarm-banner {
+  position: fixed; top: -80px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white;
+  padding: 12px 24px; border-radius: var(--radius);
+  font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 9999; transition: top .4s ease;
+  box-shadow: 0 8px 32px #f9731660;
+}
+.alarm-banner.alarm-visible { top: 20px; }
+.alarm-banner button {
+  background: white; color: var(--accent);
+  border: none; border-radius: 6px;
+  padding: 4px 12px; font-weight: 700; cursor: pointer;
+}
+
+/* === Mic button === */
+#btn-mic { position: relative; transition: all .2s; }
+#btn-mic.mic-active {
+  background: #ef444420;
+  border-color: #ef4444;
+  color: #ef4444;
+  animation: mic-pulse 1.5s ease infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 #ef444440; }
+  50% { box-shadow: 0 0 0 6px #ef444400; }
+}
 
 /* === Scrollbar === */
 ::-webkit-scrollbar { width: 6px; }

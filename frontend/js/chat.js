@@ -1,8 +1,10 @@
 // chat.js — WebSocket chat + step management
 
-import { speak } from "./tts.js";
+import { speak, stopTTS } from "./tts.js";
 import { startTimer } from "./timer.js";
 import { highlightStep } from "./recipe.js";
+import { startVoice, stopVoice, lockMic, unlockMic, isVoiceSupported, toggleVoice } from "./voice.js";
+import { initManualTimer } from "./timer.js";
 
 let _ws = null;
 let _sessionId = null;
@@ -26,11 +28,8 @@ function appendBubble(text, role) {
 function updateStepUI(payload) {
   const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds } = payload;
 
-  // Progress bar
   el("step-label").textContent = `Step ${step_number} of ${total_steps}`;
   el("progress-fill").style.width = `${(step_number / total_steps) * 100}%`;
-
-  // Step card
   el("step-instruction").textContent = instruction;
 
   const tipsEl = el("step-tips");
@@ -39,26 +38,28 @@ function updateStepUI(payload) {
   const ingEl = el("step-ingredients");
   ingEl.innerHTML = ingredients_used.map(i => `<span class="ingredient-chip">${esc(i)}</span>`).join("");
 
-  // Sidebar highlight
   highlightStep(step_index);
 }
 
-function handleEvent(event) {
+async function handleEvent(event) {
   const { type, payload } = event;
 
   if (type === "step_change") {
     updateStepUI(payload);
-    speak(payload.instruction);
-    if (payload.duration_seconds) {
-      startTimer(payload.duration_seconds);
-    }
+    lockMic();
+    await speak(payload.instruction);
+    unlockMic();
+    if (payload.duration_seconds) startTimer(payload.duration_seconds);
   } else if (type === "bot_message") {
     appendBubble(payload.content, "bot");
-    speak(payload.content);
+    lockMic();
+    await speak(payload.content);
+    unlockMic();
   } else if (type === "timer_start") {
-    startTimer(payload.duration_seconds);
+    startTimer(payload.duration_seconds, payload.label || "");
   } else if (type === "error") {
     appendBubble(`⚠️ ${payload.message}`, "bot");
+    unlockMic();
   }
 }
 
@@ -66,11 +67,15 @@ export async function startCookingSession(recipe, sessionId) {
   _recipe = recipe;
   _sessionId = sessionId;
 
-  // Show chat UI
   el("chat-empty").classList.add("hidden");
   el("chat-active").classList.remove("hidden");
   el("chat-messages").innerHTML = "";
-  el("timer-widget").classList.add("hidden");
+
+  // Show mic button if voice is supported
+  const micBtn = el("btn-mic");
+  if (micBtn) {
+    micBtn.classList.toggle("hidden", !isVoiceSupported());
+  }
 
   // Connect WebSocket
   if (_ws) { _ws.close(); }
@@ -86,16 +91,21 @@ export async function startCookingSession(recipe, sessionId) {
     }
   };
 
-  _ws.onerror = (e) => {
-    appendBubble("Connection error. Please refresh.", "bot");
-  };
-
+  _ws.onerror = () => appendBubble("Connection error. Please refresh.", "bot");
   _ws.onclose = () => {
+    stopVoice();
     console.log("WebSocket closed");
   };
+
+  // Auto-start voice input when session begins
+  if (isVoiceSupported()) {
+    // Small delay so the welcome step TTS doesn't get cut off by mic starting
+    setTimeout(() => startVoice(sendMessage), 1500);
+  }
 }
 
 export function sendMessage(text) {
+  stopTTS(); // cut off any playing TTS immediately
   if (!_ws || _ws.readyState !== WebSocket.OPEN) {
     console.warn("WebSocket not connected");
     return;
@@ -104,7 +114,7 @@ export function sendMessage(text) {
   _ws.send(JSON.stringify({ text }));
 }
 
-// Wire up input
+// Wire up text input
 document.addEventListener("DOMContentLoaded", () => {
   const input = el("chat-input");
   const btn = el("btn-send");
@@ -120,14 +130,10 @@ document.addEventListener("DOMContentLoaded", () => {
   input?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
   });
-});
 
-// Jump to step from sidebar click
-document.addEventListener("jumpToStep", (e) => {
-  if (_ws && _ws.readyState === WebSocket.OPEN) {
-    // We can't directly set step_index via WS message without backend support.
-    // For now, send "next" repeatedly or just send the step request as a message.
-    // Simple approach: tell the bot to go to that step via text.
-    // TODO: add a dedicated WS message type for step jump
-  }
+  // Mic toggle button
+  el("btn-mic")?.addEventListener("click", () => toggleVoice(sendMessage));
+
+  // Manual timer
+  initManualTimer();
 });
