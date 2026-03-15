@@ -213,7 +213,7 @@ function updateStepUI(payload) {
 
   // Progress bar
   el("step-label").textContent = is_completion ? "All done!" : `Step ${step_number} of ${total_steps}`;
-  el("progress-fill").style.width = "100%";
+  el("progress-fill").style.width = `${(step_number / total_steps) * 100}%`;
   el("step-card")?.classList.toggle("step-completion", is_completion);
 
   // Step card
@@ -357,6 +357,10 @@ export function endCookingSession() {
 
 export function clearCookingSessionPersistence() {
   clearPersistedActiveSession();
+}
+
+export function clearEventQueue() {
+  _eventQueue = Promise.resolve();
 }
 
 export function resetCookingUi() {

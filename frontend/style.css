@@ -575,6 +575,8 @@ body {
 .btn-danger:hover { background: #efcfc7; border-color: #d69d90; }
 .btn-sm { padding: 5px 10px; font-size: 12px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-icon { padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 16px; }
+#btn-stop-speech { color: #c0392b; border-color: #e8b4ae; }
+#btn-stop-speech:hover { background: #fdf0ee; border-color: #c0392b; }
 .btn-icon.active {
   background: linear-gradient(180deg, #f0d8d2, #e8bfb3);
   border-color: #d7a092;

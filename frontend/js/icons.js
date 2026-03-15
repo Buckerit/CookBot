@@ -68,6 +68,12 @@ export const icons = {
       <path d="M3.5 12h17M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18" fill="none" stroke="currentColor" stroke-width="1.4"/>
     </svg>
   `,
+  stopX: `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </svg>
+  `,
   warning: `
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M12 4 3.5 19h17L12 4Zm0 5.3v4.9m0 3h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>

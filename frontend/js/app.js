@@ -5,6 +5,7 @@ import { clearCookingSessionPersistence, endCookingSession, getPersistedActiveSe
 import { api } from "./api.js";
 import { icons } from "./icons.js";
 import { stopSpeaking } from "./tts.js";
+import { clearEventQueue } from "./chat.js";
 import { enableAutoListen } from "./realtime.js";
 
 function el(id) { return document.getElementById(id); }
@@ -67,10 +68,17 @@ async function init() {
   const emptyIcon = document.querySelector(".icon-empty");
   const micIcon = document.querySelector("#btn-mic-toggle .icon-button");
   const ttsIcon = document.querySelector("#btn-tts-toggle .icon-button");
+  const stopSpeechIcon = document.querySelector("#btn-stop-speech .icon-button");
   if (logoIcon) logoIcon.innerHTML = icons.logoHat;
   if (emptyIcon) emptyIcon.innerHTML = icons.logoHat;
   if (micIcon) micIcon.innerHTML = icons.mic;
   if (ttsIcon) ttsIcon.innerHTML = icons.speaker;
+  if (stopSpeechIcon) stopSpeechIcon.innerHTML = icons.stopX;
+
+  el("btn-stop-speech")?.addEventListener("click", () => {
+    stopSpeaking();
+    clearEventQueue();
+  });
 
   await loadRecipeList();
   await restoreUiState();
