@@ -1,11 +1,12 @@
 import json
 import logging
-import orjson
 import re
-from pathlib import Path
 from typing import Optional, AsyncIterator
+from pathlib import Path
 
-from backend.config import settings
+from sqlalchemy import select
+
+from backend.db import async_session_factory, SessionRow
 from backend.dependencies import get_openai_client
 from backend.models.chat import ChatMessage, ChatSession
 from backend.models.recipe import Recipe
@@ -56,25 +57,28 @@ _NAV_TRANSITIONS = {
 }
 
 
-def _session_path(session_id: str) -> Path:
-    return settings.sessions_path / f"{session_id}.json"
+async def load_session(session_id: str) -> Optional[ChatSession]:
+    async with async_session_factory() as db:
+        row = await db.get(SessionRow, session_id)
+        if not row:
+            return None
+        return ChatSession.model_validate(row.data)
 
 
-def load_session(session_id: str) -> Optional[ChatSession]:
-    path = _session_path(session_id)
-    if not path.exists():
-        return None
-    return ChatSession.model_validate(orjson.loads(path.read_bytes()))
+async def save_session(session: ChatSession) -> None:
+    data = session.model_dump(mode="json")
+    async with async_session_factory() as db:
+        async with db.begin():
+            row = await db.get(SessionRow, session.session_id)
+            if row:
+                row.data = data
+            else:
+                db.add(SessionRow(id=session.session_id, recipe_id=session.recipe_id, data=data))
 
 
-def save_session(session: ChatSession) -> None:
-    path = _session_path(session.session_id)
-    path.write_bytes(orjson.dumps(session.model_dump(mode="json"), option=orjson.OPT_INDENT_2))
-
-
-def create_session(recipe: Recipe) -> ChatSession:
+async def create_session(recipe: Recipe) -> ChatSession:
     session = ChatSession(recipe_id=recipe.id)
-    save_session(session)
+    await save_session(session)
     return session
 
 
@@ -205,7 +209,7 @@ async def process_message(
         }
         session.current_step_index = jump_to
         event = _step_message(recipe, session.current_step_index)
-        save_session(session)
+        await save_session(session)
 
         if event["type"] == "step_change":
             duration = event["payload"].get("duration_seconds")
@@ -242,7 +246,7 @@ async def process_message(
         # repeat: no change
 
         event = _step_message(recipe, session.current_step_index)
-        save_session(session)
+        await save_session(session)
 
         # Check for timer on new step
         if event["type"] == "step_change":
@@ -268,7 +272,7 @@ async def process_message(
             }
             session.message_history.append(ChatMessage(role="user", content=user_text))
             session.message_history.append(ChatMessage(role="assistant", content=answer))
-            save_session(session)
+            await save_session(session)
             return
         except Exception as exc:
             logger.warning("Substitution service error: %s", exc)
@@ -302,7 +306,7 @@ async def process_message(
         )
         answer = response.choices[0].message.content or ""
         session.message_history.append(ChatMessage(role="assistant", content=answer))
-        save_session(session)
+        await save_session(session)
         yield {
             "type": "bot_message",
             "payload": {"content": answer, "step_index": session.current_step_index},

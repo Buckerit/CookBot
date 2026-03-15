@@ -41,7 +41,7 @@ async def ingest_text(request: TextIngestRequest):
         raise HTTPException(status_code=400, detail="Text cannot be empty")
     try:
         recipe = await parse_recipe_text(request.text, source_url=request.source_url or "")
-        save_recipe(recipe)
+        await save_recipe(recipe)
         print(f"[timing] total response time took {time.perf_counter() - request_start:.2f}s")
         return recipe
     except Exception as exc:
@@ -76,7 +76,7 @@ async def ingest_recipe_url(request: RecipeUrlRequest):
     try:
         text = await scrape_recipe_page(request.url)
         recipe = await parse_recipe_text(text, source_url=request.url)
-        save_recipe(recipe)
+        await save_recipe(recipe)
         return recipe
     except Exception as exc:
         logger.error("Recipe URL ingest failed: %s", exc)
@@ -114,7 +114,7 @@ async def ingest_file(file: UploadFile = File(...)):
 
     try:
         recipe = await parse_recipe_text(text, source_url=filename)
-        save_recipe(recipe)
+        await save_recipe(recipe)
         print(f"[timing] total response time took {time.perf_counter() - request_start:.2f}s")
         return recipe
     except Exception as exc:

@@ -7,12 +7,12 @@ router = APIRouter(prefix="/recipes", tags=["recipes"])
 
 @router.get("", response_model=list[dict])
 async def get_all_recipes():
-    return list_recipes()
+    return await list_recipes()
 
 
 @router.get("/{recipe_id}", response_model=Recipe)
 async def get_recipe_by_id(recipe_id: str):
-    recipe = get_recipe(recipe_id)
+    recipe = await get_recipe(recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return recipe
@@ -20,7 +20,7 @@ async def get_recipe_by_id(recipe_id: str):
 
 @router.delete("/{recipe_id}")
 async def delete_recipe_by_id(recipe_id: str):
-    deleted = delete_recipe(recipe_id)
+    deleted = await delete_recipe(recipe_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Recipe not found")
     return {"deleted": recipe_id}

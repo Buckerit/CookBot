@@ -127,7 +127,7 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
         _assign_step_images(recipe, keyframe_paths, fps_used, task_id)
 
         # Step 8: Save
-        save_recipe(recipe)
+        await save_recipe(recipe)
         _update(task_id, status="done", progress_message="Done!", recipe_id=recipe.id)
         logger.info("Pipeline complete for task %s → recipe %s", task_id, recipe.id)
 

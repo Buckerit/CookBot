@@ -1,49 +1,55 @@
-import orjson
 import logging
-from pathlib import Path
 from typing import Optional
 
-from backend.config import settings
+from sqlalchemy import select
+
+from backend.db import async_session_factory, RecipeRow
 from backend.models.recipe import Recipe
 
 logger = logging.getLogger(__name__)
 
 
-def _recipe_path(recipe_id: str) -> Path:
-    return settings.recipes_path / f"{recipe_id}.json"
-
-
-def save_recipe(recipe: Recipe) -> Recipe:
-    path = _recipe_path(recipe.id)
-    path.write_bytes(orjson.dumps(recipe.model_dump(mode="json"), option=orjson.OPT_INDENT_2))
+async def save_recipe(recipe: Recipe) -> Recipe:
+    data = recipe.model_dump(mode="json")
+    async with async_session_factory() as db:
+        async with db.begin():
+            row = await db.get(RecipeRow, recipe.id)
+            if row:
+                row.title = recipe.title
+                row.data = data
+            else:
+                db.add(RecipeRow(id=recipe.id, title=recipe.title, data=data))
     logger.info("Saved recipe %s (%s)", recipe.id, recipe.title)
     return recipe
 
 
-def get_recipe(recipe_id: str) -> Optional[Recipe]:
-    path = _recipe_path(recipe_id)
-    if not path.exists():
-        return None
-    data = orjson.loads(path.read_bytes())
-    return Recipe.model_validate(data)
+async def get_recipe(recipe_id: str) -> Optional[Recipe]:
+    async with async_session_factory() as db:
+        row = await db.get(RecipeRow, recipe_id)
+        if not row:
+            return None
+        return Recipe.model_validate(row.data)
 
 
-def list_recipes() -> list[dict]:
+async def list_recipes() -> list[dict]:
+    async with async_session_factory() as db:
+        result = await db.execute(select(RecipeRow).order_by(RecipeRow.created_at.desc()))
+        rows = result.scalars().all()
     summaries = []
-    for p in sorted(settings.recipes_path.glob("*.json"), key=lambda x: x.stat().st_mtime, reverse=True):
+    for row in rows:
         try:
-            data = orjson.loads(p.read_bytes())
-            recipe = Recipe.model_validate(data)
-            summaries.append(recipe.summary())
+            summaries.append(Recipe.model_validate(row.data).summary())
         except Exception as exc:
-            logger.warning("Skipping malformed recipe %s: %s", p.name, exc)
+            logger.warning("Skipping malformed recipe %s: %s", row.id, exc)
     return summaries
 
 
-def delete_recipe(recipe_id: str) -> bool:
-    path = _recipe_path(recipe_id)
-    if not path.exists():
-        return False
-    path.unlink()
+async def delete_recipe(recipe_id: str) -> bool:
+    async with async_session_factory() as db:
+        async with db.begin():
+            row = await db.get(RecipeRow, recipe_id)
+            if not row:
+                return False
+            await db.delete(row)
     logger.info("Deleted recipe %s", recipe_id)
     return True

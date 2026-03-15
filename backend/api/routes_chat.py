@@ -18,16 +18,16 @@ class StartSessionRequest(BaseModel):
 
 @router.post("/sessions", response_model=ChatSession)
 async def start_session(request: StartSessionRequest):
-    recipe = get_recipe(request.recipe_id)
+    recipe = await get_recipe(request.recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Recipe not found")
-    session = chat_service.create_session(recipe)
+    session = await chat_service.create_session(recipe)
     return session
 
 
 @router.get("/sessions/{session_id}", response_model=ChatSession)
 async def get_session(session_id: str):
-    session = chat_service.load_session(session_id)
+    session = await chat_service.load_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     return session
@@ -38,13 +38,13 @@ async def chat_websocket(websocket: WebSocket, session_id: str):
     await websocket.accept()
     logger.info("WebSocket connected: session %s", session_id)
 
-    session = chat_service.load_session(session_id)
+    session = await chat_service.load_session(session_id)
     if not session:
         await websocket.send_json({"type": "error", "payload": {"message": "Session not found"}})
         await websocket.close(code=4004)
         return
 
-    recipe = get_recipe(session.recipe_id)
+    recipe = await get_recipe(session.recipe_id)
     if not recipe:
         await websocket.send_json({"type": "error", "payload": {"message": "Recipe not found"}})
         await websocket.close(code=4004)
