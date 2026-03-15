@@ -1,7 +1,7 @@
 // app.js — main app orchestrator
 
 import { loadRecipeList, getSelectedRecipe, getSavedSelectedRecipeId, selectRecipe } from "./recipe.js";
-import { clearCookingSessionPersistence, getPersistedActiveSession, resetCookingUi, startCookingSession } from "./chat.js";
+import { clearCookingSessionPersistence, endCookingSession, getPersistedActiveSession, resetCookingUi, startCookingSession } from "./chat.js";
 import { api } from "./api.js";
 import { icons } from "./icons.js";
 import { stopSpeaking } from "./tts.js";
@@ -9,6 +9,23 @@ import { enableAutoListen } from "./realtime.js";
 
 function el(id) { return document.getElementById(id); }
 let _activeCookingRecipeId = null;
+
+function updateCookingButtons() {
+  const startButton = el("btn-start-cooking");
+  const endButton = el("btn-end-cooking");
+  const recipe = getSelectedRecipe();
+  const hasActiveSession = Boolean(_activeCookingRecipeId);
+  const isActiveRecipe = Boolean(recipe?.id && recipe.id === _activeCookingRecipeId);
+
+  if (startButton) {
+    startButton.textContent = isActiveRecipe ? "Restart Cooking" : "Start Cooking";
+  }
+
+  if (endButton) {
+    endButton.disabled = !isActiveRecipe;
+    endButton.classList.toggle("active", isActiveRecipe);
+  }
+}
 
 async function restoreUiState() {
   const persistedSession = getPersistedActiveSession();
@@ -37,7 +54,7 @@ async function restoreUiState() {
 
     await startCookingSession(recipe, session.session_id);
     _activeCookingRecipeId = recipe.id;
-    el("btn-start-cooking").textContent = "Restart Cooking";
+    updateCookingButtons();
   } catch (error) {
     console.warn("Failed to restore session:", error);
     clearCookingSessionPersistence();
@@ -67,7 +84,7 @@ async function init() {
       const session = await api.startSession(recipe.id);
       await startCookingSession(recipe, session.session_id);
       _activeCookingRecipeId = recipe.id;
-      el("btn-start-cooking").textContent = "Restart Cooking";
+      updateCookingButtons();
       enableAutoListen();
     } catch (e) {
       console.error("Failed to start session:", e);
@@ -75,13 +92,20 @@ async function init() {
     }
   });
 
+  el("btn-end-cooking")?.addEventListener("click", () => {
+    if (!_activeCookingRecipeId || getSelectedRecipe()?.id !== _activeCookingRecipeId) return;
+    endCookingSession();
+  });
+
   document.addEventListener("recipeSelected", async (e) => {
     stopSpeaking();
-    const recipe = e.detail;
-    const startButton = el("btn-start-cooking");
-    if (startButton) {
-      startButton.textContent = recipe?.id === _activeCookingRecipeId ? "Restart Cooking" : "Start Cooking";
-    }
+    void e.detail;
+    updateCookingButtons();
+  });
+
+  document.addEventListener("cookingSessionStateChanged", (e) => {
+    _activeCookingRecipeId = e.detail?.active ? e.detail?.recipeId ?? null : null;
+    updateCookingButtons();
   });
 }
 

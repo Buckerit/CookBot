@@ -3,6 +3,7 @@
 import { api } from "./api.js";
 import { addRecipeToList } from "./recipe.js";
 import { emitChefState } from "./chef.js";
+import { resumeVoiceInput, suspendVoiceInput } from "./realtime.js";
 
 function el(id) { return document.getElementById(id); }
 
@@ -17,7 +18,13 @@ function setLoading(on) {
   el("btn-ingest-text").disabled = on;
   el("btn-ingest-url").disabled = on;
   el("btn-ingest-recipe-url").disabled = on;
-  emitChefState(on ? "thinking" : "idle", on ? "Thinking through that recipe..." : "Ready when you are.");
+  if (on) {
+    suspendVoiceInput();
+    emitChefState("thinking", "Thinking through that recipe...", 0, { lock: true });
+    return;
+  }
+  resumeVoiceInput();
+  emitChefState("idle", "Ready when you are.", 0, { clearLock: true });
 }
 
 // === Tabs ===

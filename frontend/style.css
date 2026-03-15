@@ -106,17 +106,19 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex: 1 1 auto;
+  flex: 0 0 230px;
 }
 .recipe-list-scroll {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  max-height: 170px;
   overflow-y: auto;
   padding-right: 4px;
 }
 .sidebar-footer {
+  margin-top: auto;
   flex-shrink: 0;
-  padding: 18px 16px 22px;
+  padding: 14px 16px 18px;
 }
 
 /* === Recipe list === */
@@ -187,8 +189,8 @@ body {
 .tab-content { display: none; flex-direction: column; gap: 8px; }
 .tab-content.active { display: flex; }
 #ingest-panel {
-  flex: 0 0 190px;
-  min-height: 190px;
+  flex: 0 0 256px;
+  min-height: 256px;
   display: flex;
   flex-direction: column;
 }
@@ -196,7 +198,7 @@ body {
   margin-bottom: 14px;
 }
 .tab-content {
-  min-height: 150px;
+  min-height: 206px;
   justify-content: flex-start;
 }
 
@@ -557,6 +559,17 @@ body {
 .btn-primary:hover { background: linear-gradient(180deg, #88ad80, #73976c); }
 .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--accent); }
+.btn-secondary.active {
+  background: linear-gradient(180deg, #f4ddd7, #ebc8be);
+  border-color: #d7a092;
+  color: #8f4033;
+  box-shadow: 0 10px 18px rgba(195, 134, 120, 0.18);
+}
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: default;
+  border-color: var(--border);
+}
 .btn-danger { background: #f5ded8; color: #8f4033; border: 1px solid #e3b8ae; }
 .btn-danger:hover { background: #efcfc7; border-color: #d69d90; }
 .btn-sm { padding: 5px 10px; font-size: 12px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
@@ -619,7 +632,8 @@ body {
 
 .chef-assistant {
   position: relative;
-  min-height: 280px;
+  min-height: 300px;
+  margin-bottom: 6px;
   padding: 18px 18px 14px;
   background:
     radial-gradient(circle at top right, rgba(212, 177, 90, 0.16), transparent 26%),

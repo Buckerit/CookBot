@@ -1,7 +1,7 @@
 // chat.js — WebSocket chat + step management
 
 import { speak, stopSpeaking } from "./tts.js";
-import { holdAutoListen } from "./realtime.js";
+import { disableVoiceInput, holdAutoListen, stopRealtimeSession } from "./realtime.js";
 import {
   addTime,
   dismissTimer,
@@ -39,6 +39,17 @@ const _READY_FOR_TIMER = [
   "it is in",
   "it's in",
   "its in",
+];
+
+const _END_SESSION_PATTERNS = [
+  /\b(stop|end|finish|terminate|close)\b.*\b(cooking|session)\b/i,
+  /\b(we are done|we're done)\b.*\b(cooking|session)\b/i,
+];
+
+const _GOODBYE_PATTERNS = [
+  /\b(thank you|thanks)\b.*\b(help|helping|assistance|support)?\b/i,
+  /\b(goodbye|bye|see you|talk to you later|catch you later)\b/i,
+  /\b(that is all|that's all|all done|im done|i'm done)\b/i,
 ];
 
 function el(id) { return document.getElementById(id); }
@@ -106,6 +117,23 @@ function normalize(text) {
 function isTimerReadyIntent(text) {
   const normalized = normalize(text);
   return _READY_FOR_TIMER.some((phrase) => normalized === phrase || normalized.includes(phrase));
+}
+
+function isSessionEndIntent(text) {
+  return _END_SESSION_PATTERNS.some((pattern) => pattern.test(text.trim()));
+}
+
+function isGoodbyeIntent(text) {
+  return _GOODBYE_PATTERNS.some((pattern) => pattern.test(text.trim()));
+}
+
+function handleGoodbye(text) {
+  appendBubble(text, "user");
+  disableVoiceInput();
+  const reply = "You're welcome! Your cooking session will be right here whenever you want to keep going!";
+  appendBubble(reply, "bot");
+  emitChefState("idle", "I'll stay quiet until you need me again.", 1800);
+  void speak(reply);
 }
 
 function maybeStartPendingTimer(text) {
@@ -229,9 +257,11 @@ async function handleEvent(event) {
   if (type === "step_change") {
     _pendingTimer = null;
     updateStepUI(payload);
+    emitChefState("talking", "Talking through the step.", 0, { overrideLock: true });
     await speak(payload.instruction);
     if (payload.spoken_follow_up) {
       appendBubble(payload.spoken_follow_up, "bot");
+      emitChefState("talking", "Talking through the step.", 0, { overrideLock: true });
       await speak(payload.spoken_follow_up);
     }
     if (payload.duration_seconds) {
@@ -258,6 +288,16 @@ async function handleEvent(event) {
   }
 }
 
+function emitCookingSessionState(active) {
+  document.dispatchEvent(new CustomEvent("cookingSessionStateChanged", {
+    detail: {
+      active,
+      recipeId: active ? _recipe?.id ?? null : null,
+      sessionId: active ? _sessionId : null,
+    },
+  }));
+}
+
 export async function startCookingSession(recipe, sessionId) {
   _recipe = recipe;
   _sessionId = sessionId;
@@ -278,6 +318,7 @@ export async function startCookingSession(recipe, sessionId) {
   el("step-tips").innerHTML = "";
   el("step-ingredients").innerHTML = "";
   el("step-image")?.classList.add("hidden");
+  emitCookingSessionState(true);
 
   // Connect WebSocket
   if (_ws) { _ws.close(); }
@@ -304,6 +345,13 @@ export async function startCookingSession(recipe, sessionId) {
   _ws.onclose = () => {
     console.log("WebSocket closed");
   };
+}
+
+export function endCookingSession() {
+  stopSpeaking();
+  stopRealtimeSession();
+  resetCookingUi();
+  emitCookingSessionState(false);
 }
 
 export function clearCookingSessionPersistence() {
@@ -333,6 +381,15 @@ export function resetCookingUi() {
 }
 
 export function sendMessage(text) {
+  if (isGoodbyeIntent(text)) {
+    handleGoodbye(text);
+    return;
+  }
+  if (isSessionEndIntent(text)) {
+    appendBubble(text, "user");
+    endCookingSession();
+    return;
+  }
   if (maybeStartPendingTimer(text)) return;
   if (maybeHandleTimerCommand(text)) return;
   if (!_ws || _ws.readyState !== WebSocket.OPEN) {
@@ -384,6 +441,7 @@ document.addEventListener("voiceCommand", (e) => {
 document.addEventListener("recipeSelected", (e) => {
   if (!e.detail) {
     resetCookingUi();
+    emitCookingSessionState(false);
   }
 });
 

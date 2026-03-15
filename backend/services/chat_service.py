@@ -15,6 +15,18 @@ from backend.services.timer_service import extract_duration_seconds
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "system_chat.txt"
+_CONVERSION_REFERENCE = """
+Useful approximate kitchen conversions:
+- 1 tablespoon butter ≈ 14 grams
+- 1 tablespoon oil ≈ 14 grams
+- 1 tablespoon water ≈ 15 milliliters
+- 1 tablespoon sugar ≈ 12 to 13 grams
+- 1 tablespoon flour ≈ 8 grams
+- 1 teaspoon salt ≈ 5 to 6 grams
+
+Consistency rule:
+- If you suggested an amount already, and the user asks for it in another unit, convert that same amount instead of changing the recommendation.
+""".strip()
 
 # Navigation intent patterns
 _NEXT_INTENTS = {"next", "next step", "continue", "done", "ready", "ok", "okay", "go", "proceed"}
@@ -25,6 +37,7 @@ _STEP_JUMP_PATTERN = re.compile(
     r"\b(?:go to|goto|jump to|skip to|take me to|move to)\s+step\s+(\d+)\b",
     re.IGNORECASE,
 )
+_SERVING_STEP_PATTERN = re.compile(r"\b(serve|serving|plate|enjoy)\b", re.IGNORECASE)
 
 # Substitution trigger phrases
 _SUB_TRIGGERS = ["don't have", "dont have", "allergic", "substitute", "instead of", "alternative to", "out of"]
@@ -54,6 +67,8 @@ _NAV_TRANSITIONS = {
     "restart": "Let's start again from the beginning.",
     "jump": "Sure, let's jump to that step.",
 }
+_AMBIGUITY_NOTE_CACHE: dict[tuple[str, int], list[str]] = {}
+_INGREDIENT_ESTIMATE_CACHE: dict[tuple[str, str], str] = {}
 
 
 def _session_path(session_id: str) -> Path:
@@ -120,18 +135,22 @@ def _detect_step_jump_intent(text: str, total_steps: int) -> Optional[int]:
 def _build_system_prompt(recipe: Recipe) -> str:
     template = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     recipe_json = json.dumps(recipe.model_dump(mode="json"), indent=2)
-    return template.replace("{recipe_json}", recipe_json)
+    return template.replace("{recipe_json}", recipe_json) + f"\n\n## Conversion Reference\n{_CONVERSION_REFERENCE}"
 
 
-def _estimate_missing_amount(ingredient_name: str) -> str:
+def _fallback_missing_amount(ingredient_name: str) -> str:
     lowered = ingredient_name.lower()
     for keywords, hint in _AMBIGUOUS_AMOUNT_HINTS:
         if any(keyword in lowered for keyword in keywords):
             return hint
-    return "start with a small amount, around 1 to 2 tablespoons, and adjust as you go"
+    return "start with a small amount and adjust as you go"
 
 
-def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
+async def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
+    cache_key = (recipe.id, step_index)
+    if cache_key in _AMBIGUITY_NOTE_CACHE:
+        return _AMBIGUITY_NOTE_CACHE[cache_key]
+
     if step_index < 0 or step_index >= len(recipe.steps):
         return []
 
@@ -139,7 +158,7 @@ def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
     if not step.ingredients_used:
         return []
 
-    notes: list[str] = []
+    missing_ingredients = []
     for ingredient_name in step.ingredients_used:
         match = next(
             (
@@ -151,15 +170,105 @@ def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
         )
         if not match or match.quantity:
             continue
+        missing_ingredients.append(match.name)
 
-        estimate = _estimate_missing_amount(match.name)
-        notes.append(
-            f"The source does not give an exact amount for {match.name}, so I would {estimate}."
+    if not missing_ingredients:
+        _AMBIGUITY_NOTE_CACHE[cache_key] = []
+        return []
+
+    unseen_ingredients = [
+        name for name in missing_ingredients
+        if (recipe.id, name.strip().lower()) not in _INGREDIENT_ESTIMATE_CACHE
+    ]
+    if not unseen_ingredients:
+        _AMBIGUITY_NOTE_CACHE[cache_key] = []
+        return []
+
+    fallback_estimates = {name: _fallback_missing_amount(name) for name in unseen_ingredients}
+    prior_estimates = {
+        name: _INGREDIENT_ESTIMATE_CACHE[(recipe.id, name.strip().lower())]
+        for name in missing_ingredients
+        if (recipe.id, name.strip().lower()) in _INGREDIENT_ESTIMATE_CACHE
+    }
+
+    prompt = (
+        "You are helping with a cooking recipe. The recipe source omitted exact amounts for some ingredients in the current step.\n"
+        "Using the recipe title, current step, and ingredient list, suggest practical starting amounts that make culinary sense.\n"
+        "Be conservative, internally consistent, and specific to each ingredient. Do not invent certainty; say it is approximate.\n"
+        "Choose units that make culinary sense for the ingredient, not generic tablespoon defaults.\n"
+        "Prefer grams for solid ingredients like butter, crackers, chocolate, cheese, flour, breadcrumbs, and chopped vegetables.\n"
+        "Prefer counts for discrete items like eggs, garlic cloves, cookies, biscuits, and fruit.\n"
+        "Prefer teaspoons or tablespoons only for spices, extracts, sauces, or small seasoning amounts.\n"
+        "Prefer milliliters only for liquids.\n"
+        "Avoid using cups or tablespoons for ingredients like graham crackers or butter when a weight estimate in grams would be more sensible.\n"
+        "Return the amount as a short phrase that already includes the unit, for example: 'start with about 60 grams', 'start with 1 egg', or 'start with about 1/4 teaspoon'.\n"
+        "Return strict JSON with this shape: "
+        '{"notes":[{"ingredient":"butter","estimate":"start with about 60 grams"}]}'
+    )
+    context = {
+        "title": recipe.title,
+        "current_step": step.instruction,
+        "ingredients_used_in_step": step.ingredients_used,
+        "full_ingredient_list": [
+            {
+                "name": ingredient.name,
+                "quantity": ingredient.quantity,
+                "unit": ingredient.unit,
+                "notes": ingredient.notes,
+            }
+            for ingredient in recipe.ingredients
+        ],
+        "missing_amount_ingredients": unseen_ingredients,
+        "prior_estimates_from_earlier_steps": prior_estimates,
+    }
+
+    client = get_openai_client()
+    try:
+        response = await client.chat.completions.create(
+            model=settings.openai_model_chat,
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": json.dumps(context)},
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=300,
+            temperature=0.2,
         )
+        raw = response.choices[0].message.content or "{}"
+        data = json.loads(raw)
+        note_map = {
+            str(item.get("ingredient", "")).strip().lower(): str(item.get("estimate", "")).strip()
+            for item in data.get("notes", [])
+            if item.get("ingredient") and item.get("estimate")
+        }
+        estimates = {
+            name: note_map.get(name.lower(), fallback_estimates[name])
+            for name in unseen_ingredients
+        }
+    except Exception as exc:
+        logger.warning("Ambiguous amount estimation failed for recipe %s step %s: %s", recipe.id, step_index, exc)
+        estimates = fallback_estimates
+
+    for name, estimate in estimates.items():
+        _INGREDIENT_ESTIMATE_CACHE[(recipe.id, name.strip().lower())] = estimate
+
+    if len(unseen_ingredients) == 1:
+        name = unseen_ingredients[0]
+        notes = [f"The source does not give an exact amount for {name}, so I would {estimates[name]}."]
+    else:
+        joined_names = ", ".join(unseen_ingredients[:-1]) + f", and {unseen_ingredients[-1]}"
+        estimate_parts = [f"{name}: {estimates[name]}" for name in unseen_ingredients]
+        notes = [
+            f"The source does not give exact amounts for {joined_names}, so I would use approximately "
+            + "; ".join(estimate_parts)
+            + "."
+        ]
+
+    _AMBIGUITY_NOTE_CACHE[cache_key] = notes
     return notes
 
 
-def _step_message(recipe: Recipe, step_index: int) -> dict:
+async def _step_message(recipe: Recipe, step_index: int) -> dict:
     if step_index >= len(recipe.steps):
         return {
             "type": "bot_message",
@@ -169,18 +278,26 @@ def _step_message(recipe: Recipe, step_index: int) -> dict:
             },
         }
     step = recipe.steps[step_index]
-    ambiguity_notes = _ambiguity_notes(recipe, step_index)
+    is_serving_finish = step_index == len(recipe.steps) - 1 and bool(_SERVING_STEP_PATTERN.search(step.instruction))
+    ambiguity_notes = await _ambiguity_notes(recipe, step_index)
+    instruction = (
+        f"Congratulations!! You're all set. Plate it up and enjoy your {recipe.title}!!"
+        if is_serving_finish
+        else step.instruction
+    )
+    spoken_follow_up = "" if is_serving_finish else " ".join(ambiguity_notes)
+    tips = [] if is_serving_finish else step.tips + ambiguity_notes
     return {
         "type": "step_change",
         "payload": {
             "step_index": step_index,
             "step_number": step_index + 1,
             "total_steps": len(recipe.steps),
-            "instruction": step.instruction,
-            "tips": step.tips + ambiguity_notes,
+            "instruction": instruction,
+            "tips": tips,
             "ingredients_used": step.ingredients_used,
             "duration_seconds": step.duration_seconds,
-            "spoken_follow_up": " ".join(ambiguity_notes),
+            "spoken_follow_up": spoken_follow_up,
             "image_url": step.image_url,
         },
     }
@@ -204,7 +321,7 @@ async def process_message(
             },
         }
         session.current_step_index = jump_to
-        event = _step_message(recipe, session.current_step_index)
+        event = await _step_message(recipe, session.current_step_index)
         save_session(session)
 
         if event["type"] == "step_change":
@@ -241,7 +358,7 @@ async def process_message(
             session.current_step_index = 0
         # repeat: no change
 
-        event = _step_message(recipe, session.current_step_index)
+        event = await _step_message(recipe, session.current_step_index)
         save_session(session)
 
         # Check for timer on new step

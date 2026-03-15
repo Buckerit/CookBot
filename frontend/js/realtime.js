@@ -8,6 +8,7 @@ let _resumeAfterSpeech = false;
 let _shouldKeepListening = true;
 let _speechBlocked = false;
 let _holdAutoListen = false;
+let _suspendCount = 0;
 
 function el(id) { return document.getElementById(id); }
 
@@ -51,7 +52,7 @@ function stopListening({ resumeAfterSpeech = false } = {}) {
 }
 
 function startListening() {
-  if (_speechBlocked) return;
+  if (_speechBlocked || _suspendCount > 0) return;
   if (!_supported || !_recognition) {
     appendRealtimeError("Voice input is not available in this browser.");
     emitChefState("thinking", "Voice input is not available here.", 1800);
@@ -138,7 +139,7 @@ function initRecognition() {
     _resumeAfterSpeech = false;
     _listening = false;
     setButtonState();
-    if ((shouldResume || _shouldKeepListening) && !_speechBlocked) {
+    if ((shouldResume || _shouldKeepListening) && !_speechBlocked && _suspendCount === 0) {
       startListening();
     }
   };
@@ -163,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (speaking) {
       _holdAutoListen = false;  // response TTS started — resume normal auto-listen flow
       if (_listening) stopListening({ resumeAfterSpeech: true });
-    } else if (_shouldKeepListening && !_listening && !_holdAutoListen) {
+    } else if (_shouldKeepListening && !_listening && !_holdAutoListen && _suspendCount === 0) {
       startListening();
     }
   });
@@ -171,6 +172,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 export function stopRealtimeSession() {
   _shouldKeepListening = false;
+  _holdAutoListen = true;
+  _resumeAfterSpeech = false;
+  stopListening();
+}
+
+export function disableVoiceInput() {
+  _shouldKeepListening = false;
+  _holdAutoListen = true;
+  _resumeAfterSpeech = false;
   stopListening();
 }
 
@@ -179,11 +189,25 @@ export function enableAutoListen() {
   _holdAutoListen = false;
   // Start immediately if TTS isn't currently speaking; otherwise the
   // ttsSpeaking listener will auto-start once TTS finishes.
-  if (!_speechBlocked && !_listening) {
+  if (!_speechBlocked && !_listening && _suspendCount === 0) {
     startListening();
   }
 }
 
 export function holdAutoListen() {
   _holdAutoListen = true;
+}
+
+export function suspendVoiceInput() {
+  _suspendCount += 1;
+  if (_listening) {
+    stopListening();
+  }
+}
+
+export function resumeVoiceInput() {
+  _suspendCount = Math.max(0, _suspendCount - 1);
+  if (_suspendCount === 0 && _shouldKeepListening && !_speechBlocked && !_holdAutoListen && !_listening) {
+    startListening();
+  }
 }

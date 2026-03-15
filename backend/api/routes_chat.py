@@ -51,7 +51,7 @@ async def chat_websocket(websocket: WebSocket, session_id: str):
         return
 
     # Send initial step
-    initial = chat_service._step_message(recipe, session.current_step_index)
+    initial = await chat_service._step_message(recipe, session.current_step_index)
     await websocket.send_json(initial)
 
     try:

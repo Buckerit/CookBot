@@ -65,7 +65,7 @@ export async function speak(text) {
   _abortController = new AbortController();
 
   try {
-    emitChefState("talking", "Talking through the step.");
+    emitChefState("talking", "Talking through the step.", 0, { overrideLock: true });
     emitSpeechState(true);
     await unlockAudio();
     const res = await fetch("/tts", {
@@ -80,7 +80,7 @@ export async function speak(text) {
     if (!res.ok) {
       console.warn("TTS request failed:", res.status);
       emitSpeechState(false);
-      emitChefState("idle", "Ready when you are.");
+      emitChefState("idle", "Ready when you are.", 0, { overrideLock: true });
       return;
     }
 
@@ -99,18 +99,18 @@ export async function speak(text) {
       };
       _currentAudio.onended = () => {
         emitSpeechState(false);
-        emitChefState("idle", "Ready when you are.");
+        emitChefState("idle", "Ready when you are.", 0, { overrideLock: true });
         done();
       };
       _currentAudio.onerror = () => {
         emitSpeechState(false);
-        emitChefState("idle", "Ready when you are.");
+        emitChefState("idle", "Ready when you are.", 0, { overrideLock: true });
         done();
       };
       _currentAudio.play().catch((error) => {
         console.warn("Audio playback failed:", error);
         emitSpeechState(false);
-        emitChefState("idle", "Ready when you are.");
+        emitChefState("idle", "Ready when you are.", 0, { overrideLock: true });
         done();
       });
     });
@@ -119,7 +119,7 @@ export async function speak(text) {
     if (e.name === "AbortError") return;
     console.warn("TTS error:", e);
     emitSpeechState(false);
-    emitChefState("idle", "Ready when you are.");
+    emitChefState("idle", "Ready when you are.", 0, { overrideLock: true });
   }
 }
 
