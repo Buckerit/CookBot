@@ -34,7 +34,7 @@ def _build_context(
         parts.append(f"=== AUDIO TRANSCRIPT ===\n{transcript[:MAX_INPUT_CHARS // 2]}")
     if segments:
         timed = _build_timed_context(segments)
-        parts.append(f"=== TIMED TRANSCRIPT SEGMENTS ===\n{timed[:MAX_INPUT_CHARS // 4]}")
+        parts.append(f"=== TIMED TRANSCRIPT SEGMENTS ===\n{timed[:MAX_INPUT_CHARS // 2]}")
     if ocr_results:
         ocr_text = "\n".join(f"[Frame {i}]: {t}" for i, t in ocr_results)
         parts.append(f"=== ON-SCREEN TEXT (OCR) ===\n{ocr_text}")

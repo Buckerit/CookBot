@@ -11,6 +11,7 @@ Return ONLY valid JSON matching this schema:
   "cook_time_minutes": "integer or null",
   "cuisine": "string or null",
   "tags": ["array of strings"],
+  "completion_description": "string or null — 2-3 sentences describing what the finished dish should look, smell, and taste like. Written in second person (e.g. 'Your cake should have a golden crust...'). Use null only if nothing can be inferred from the source.",
   "ingredients": [
     {
       "name": "string",
@@ -44,4 +45,5 @@ Rules:
 - ingredients_used should reference ingredients by name as they appear in the ingredients list.
 - tags can include meal type (breakfast, dinner), dietary (vegan, gluten-free), cooking method (baked, fried), etc.
 - If timed transcript segments are provided, use them to estimate the video timestamps for each step. Set image_timestamp_seconds to the moment within the step when the key ingredient first appears or is actively being handled.
+- completion_description should describe the final plated result: appearance, texture, aroma, or taste. Base it on any description in the source of how the finished dish looks or should turn out.
 - Return ONLY the JSON object, no markdown, no explanation.

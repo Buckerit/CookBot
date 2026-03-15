@@ -37,6 +37,8 @@ class Recipe(BaseModel):
     steps: list[Step] = Field(default_factory=list)
     source_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    completion_description: Optional[str] = None
+    completion_image_url: Optional[str] = None
 
     def summary(self) -> dict:
         return {

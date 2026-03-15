@@ -37,7 +37,6 @@ _STEP_JUMP_PATTERN = re.compile(
     r"\b(?:go to|goto|jump to|skip to|take me to|move to)\s+step\s+(\d+)\b",
     re.IGNORECASE,
 )
-_SERVING_STEP_PATTERN = re.compile(r"\b(serve|serving|plate|enjoy)\b", re.IGNORECASE)
 
 # Substitution trigger phrases
 _SUB_TRIGGERS = ["don't have", "dont have", "allergic", "substitute", "instead of", "alternative to", "out of"]
@@ -270,23 +269,27 @@ async def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
 
 async def _step_message(recipe: Recipe, step_index: int) -> dict:
     if step_index >= len(recipe.steps):
+        instruction = recipe.completion_description or f"Your {recipe.title} is ready! Take a moment to admire your work before serving."
         return {
-            "type": "bot_message",
+            "type": "step_change",
             "payload": {
-                "content": f"You've completed all {len(recipe.steps)} steps! Enjoy your {recipe.title}!",
                 "step_index": step_index,
+                "step_number": len(recipe.steps) + 1,
+                "total_steps": len(recipe.steps) + 1,
+                "instruction": instruction,
+                "tips": [],
+                "ingredients_used": [],
+                "duration_seconds": None,
+                "spoken_follow_up": "",
+                "image_url": recipe.completion_image_url,
+                "is_completion": True,
             },
         }
     step = recipe.steps[step_index]
-    is_serving_finish = step_index == len(recipe.steps) - 1 and bool(_SERVING_STEP_PATTERN.search(step.instruction))
     ambiguity_notes = await _ambiguity_notes(recipe, step_index)
-    instruction = (
-        f"Congratulations!! You're all set. Plate it up and enjoy your {recipe.title}!!"
-        if is_serving_finish
-        else step.instruction
-    )
-    spoken_follow_up = "" if is_serving_finish else " ".join(ambiguity_notes)
-    tips = [] if is_serving_finish else step.tips + ambiguity_notes
+    instruction = step.instruction
+    spoken_follow_up = " ".join(ambiguity_notes)
+    tips = step.tips + ambiguity_notes
     return {
         "type": "step_change",
         "payload": {

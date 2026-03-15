@@ -45,30 +45,56 @@ def _frame_ts(path: Path, fps: float) -> float:
         return 0.0
 
 
-def _assign_step_images(recipe, keyframe_paths: list[Path], fps: float, task_id: str) -> None:
+async def _assign_step_images(recipe, keyframe_paths: list[Path], fps: float, task_id: str) -> None:
     """Copy best-matching keyframe for each step into persistent recipe storage."""
+    from backend.pipeline.vision import select_best_frame
+
     if not keyframe_paths:
         return
     recipe_dir = settings.recipes_path / recipe.id
     recipe_dir.mkdir(parents=True, exist_ok=True)
-    for step in recipe.steps:
-        if step.timestamp_start_seconds is None or step.timestamp_end_seconds is None:
-            continue
-        # Prefer the LLM-specified ingredient moment; fall back to step midpoint
-        if step.image_timestamp_seconds is not None:
-            target_ts = step.image_timestamp_seconds
+
+    total_frames = len(keyframe_paths)
+    total_steps = len(recipe.steps)
+    # How many seconds to expand the search window beyond the step boundaries
+    _WINDOW_BUFFER_S = 10.0
+    # Max candidates to send to GPT-4o for selection
+    _MAX_CANDIDATES = 5
+
+    async def _process_step(step):
+        if step.timestamp_start_seconds is not None and step.timestamp_end_seconds is not None:
+            target_ts = step.image_timestamp_seconds or (
+                (step.timestamp_start_seconds + step.timestamp_end_seconds) / 2
+            )
+            win_start = step.timestamp_start_seconds - _WINDOW_BUFFER_S
+            win_end = step.timestamp_end_seconds + _WINDOW_BUFFER_S
+            window_frames = [p for p in keyframe_paths if win_start <= _frame_ts(p, fps) <= win_end]
+            if not window_frames:
+                window_frames = keyframe_paths
+            window_frames.sort(key=lambda p: abs(_frame_ts(p, fps) - target_ts))
+            candidates = window_frames[:_MAX_CANDIDATES]
         else:
-            target_ts = (step.timestamp_start_seconds + step.timestamp_end_seconds) / 2
-        candidates = [
-            p for p in keyframe_paths
-            if step.timestamp_start_seconds <= _frame_ts(p, fps) <= step.timestamp_end_seconds
-        ]
-        if not candidates:
-            candidates = keyframe_paths
-        best = min(candidates, key=lambda p: abs(_frame_ts(p, fps) - target_ts))
+            frame_idx = min(
+                int((step.index / max(total_steps - 1, 1)) * (total_frames - 1)),
+                total_frames - 1,
+            )
+            target_ts = _frame_ts(keyframe_paths[frame_idx], fps)
+            start_i = max(0, frame_idx - (_MAX_CANDIDATES // 2))
+            end_i = min(total_frames, start_i + _MAX_CANDIDATES)
+            candidates = keyframe_paths[start_i:end_i]
+
+        best = await select_best_frame(step.instruction, candidates)
         dest = recipe_dir / f"step_{step.index}.jpg"
         shutil.copy(best, dest)
         step.image_url = f"/recipe-images/{recipe.id}/step_{step.index}.jpg"
+
+    await asyncio.gather(*[_process_step(step) for step in recipe.steps])
+
+    # Save last keyframe as the completion (final product) image
+    last_frame = keyframe_paths[-1]
+    completion_dest = recipe_dir / "step_final.jpg"
+    shutil.copy(last_frame, completion_dest)
+    recipe.completion_image_url = f"/recipe-images/{recipe.id}/step_final.jpg"
 
 
 async def run_url_pipeline(task_id: str, url: str) -> None:
@@ -78,13 +104,12 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
     _tasks[task_id] = IngestStatus(task_id=task_id, status="processing", progress_message="Starting download...")
 
     try:
-        # Step 1: Try transcript first (fast path)
-        _update(task_id, progress_message="Checking for available transcript...")
-        transcript_path = await downloader.fetch_transcript(url, task_id)
-
-        # Step 2: Download video (needed for keyframes)
-        _update(task_id, progress_message="Downloading video...")
-        video_path = await downloader.download_video(url, task_id)
+        # Step 1+2: Fetch transcript and download video in parallel
+        _update(task_id, progress_message="Downloading video and transcript...")
+        transcript_path, video_path = await asyncio.gather(
+            downloader.fetch_transcript(url, task_id),
+            downloader.download_video(url, task_id),
+        )
 
         # Step 3: Extract audio + keyframes
         _update(task_id, progress_message="Extracting audio and frames...")
@@ -124,7 +149,7 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
         )
 
         # Step 7: Assign step images from keyframes
-        _assign_step_images(recipe, keyframe_paths, fps_used, task_id)
+        await _assign_step_images(recipe, keyframe_paths, fps_used, task_id)
 
         # Step 8: Save
         save_recipe(recipe)

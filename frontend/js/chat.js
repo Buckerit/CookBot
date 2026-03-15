@@ -209,11 +209,12 @@ function maybeHandleTimerCommand(text) {
 }
 
 function updateStepUI(payload) {
-  const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds, image_url } = payload;
+  const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds, image_url, is_completion = false } = payload;
 
   // Progress bar
-  el("step-label").textContent = `Step ${step_number} of ${total_steps}`;
-  el("progress-fill").style.width = `${(step_number / total_steps) * 100}%`;
+  el("step-label").textContent = is_completion ? "All done!" : `Step ${step_number} of ${total_steps}`;
+  el("progress-fill").style.width = "100%";
+  el("step-card")?.classList.toggle("step-completion", is_completion);
 
   // Step card
   el("step-instruction").textContent = instruction;

@@ -264,6 +264,7 @@ body {
   color: var(--text-muted);
 }
 .step-card-body { display: flex; gap: 12px; align-items: flex-start; }
+.step-completion { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .step-instruction { font-size: 16px; font-weight: 600; line-height: 1.5; flex: 1; }
 .step-image { width: 240px; height: 180px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 .step-tips { margin-top: 10px; font-size: 15px; line-height: 1.65; color: var(--text-muted); }

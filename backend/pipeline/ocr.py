@@ -44,11 +44,13 @@ async def ocr_frame(image_path: Path) -> Optional[str]:
 
 
 async def ocr_frames(frame_paths: list[Path]) -> list[tuple[int, str]]:
-    """Run OCR on all frames, return list of (frame_index, text) for frames with text."""
-    results = []
-    for i, path in enumerate(frame_paths):
-        text = await ocr_frame(path)
-        if text:
-            results.append((i, text))
+    """Run OCR on all frames in parallel, return list of (frame_index, text) for frames with text."""
+    import asyncio
+
+    async def _ocr(i: int, path: Path) -> tuple[int, str | None]:
+        return i, await ocr_frame(path)
+
+    raw = await asyncio.gather(*[_ocr(i, p) for i, p in enumerate(frame_paths)])
+    results = [(i, text) for i, text in raw if text]
     logger.info("OCR: %d/%d frames had text overlays", len(results), len(frame_paths))
     return results

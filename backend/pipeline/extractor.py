@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -25,10 +26,12 @@ async def extract_media(video_path: Path, task_id: str) -> tuple[Path, list[Path
         raise ValueError(f"Video too long: {duration:.0f}s > {settings.max_video_duration_seconds}s limit")
 
     audio_path = audio_dir / "audio.mp3"
-    audio_path = await extract_audio(video_path, audio_path)
 
-    # 0.5 fps = one frame every 2 seconds (may be increased later if transcript is sparse)
-    keyframes = await extract_keyframes(video_path, frames_dir, fps=0.5)
+    # Extract audio and keyframes in parallel — both just read from the video file
+    (audio_path, keyframes) = await asyncio.gather(
+        extract_audio(video_path, audio_path),
+        extract_keyframes(video_path, frames_dir, fps=0.5),
+    )
 
     return audio_path, keyframes, duration
 
