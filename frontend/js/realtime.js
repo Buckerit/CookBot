@@ -7,6 +7,7 @@ let _supported = false;
 let _resumeAfterSpeech = false;
 let _shouldKeepListening = true;
 let _speechBlocked = false;
+let _holdAutoListen = false;
 
 function el(id) { return document.getElementById(id); }
 
@@ -159,9 +160,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("ttsSpeaking", (event) => {
     const speaking = Boolean(event.detail?.speaking);
     _speechBlocked = speaking;
-    if (speaking && _listening) {
-      stopListening({ resumeAfterSpeech: true });
-    } else if (!speaking && _shouldKeepListening && !_listening) {
+    if (speaking) {
+      _holdAutoListen = false;  // response TTS started — resume normal auto-listen flow
+      if (_listening) stopListening({ resumeAfterSpeech: true });
+    } else if (_shouldKeepListening && !_listening && !_holdAutoListen) {
       startListening();
     }
   });
@@ -174,9 +176,14 @@ export function stopRealtimeSession() {
 
 export function enableAutoListen() {
   _shouldKeepListening = true;
+  _holdAutoListen = false;
   // Start immediately if TTS isn't currently speaking; otherwise the
   // ttsSpeaking listener will auto-start once TTS finishes.
   if (!_speechBlocked && !_listening) {
     startListening();
   }
+}
+
+export function holdAutoListen() {
+  _holdAutoListen = true;
 }

@@ -1,6 +1,7 @@
 // chat.js — WebSocket chat + step management
 
 import { speak, stopSpeaking } from "./tts.js";
+import { holdAutoListen } from "./realtime.js";
 import {
   addTime,
   dismissTimer,
@@ -41,11 +42,8 @@ const _READY_FOR_TIMER = [
 ];
 
 function el(id) { return document.getElementById(id); }
-function setInputLocked(locked) {
-  const input = el("chat-input");
-  const sendButton = el("btn-send");
-  if (input) input.disabled = locked;
-  if (sendButton) sendButton.disabled = locked;
+function setInputLocked(_locked) {
+  // Input stays enabled so users can type/send while TTS is playing
 }
 function persistActiveSession() {
   if (!_sessionId || !_recipe?.id) return;
@@ -354,6 +352,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
+    holdAutoListen();
+    stopSpeaking();
+    _eventQueue = Promise.resolve();
     sendMessage(text);
   }
 

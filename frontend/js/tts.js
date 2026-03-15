@@ -9,6 +9,7 @@ let _currentAudio = null;
 let _audioUnlocked = false;
 let _generation = 0;
 let _abortController = null;
+let _resolveCurrentSpeech = null;
 
 const _SILENT_AUDIO =
   "data:audio/mp3;base64,SUQzAwAAAAAAFlRFTkMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQxAADBzQAHgAAGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFj/+5DEAAEHNAAeAAAYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg==";
@@ -19,6 +20,7 @@ export function stopSpeaking() {
   _generation++;
   if (_abortController) { _abortController.abort(); _abortController = null; }
   if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  if (_resolveCurrentSpeech) { _resolveCurrentSpeech(); _resolveCurrentSpeech = null; }
   emitSpeechState(false);
   emitChefState("idle", "Ready when you are.");
 }
@@ -89,25 +91,30 @@ export async function speak(text) {
     _currentAudio = new Audio(url);
     _currentAudio.preload = "auto";
     await new Promise((resolve) => {
-      _currentAudio.onended = () => {
+      _resolveCurrentSpeech = resolve;
+      const done = () => {
+        _resolveCurrentSpeech = null;
         URL.revokeObjectURL(url);
-        emitSpeechState(false);
-        emitChefState("idle", "Ready when you are.");
         resolve();
       };
-      _currentAudio.onerror = () => {
-        URL.revokeObjectURL(url);
+      _currentAudio.onended = () => {
         emitSpeechState(false);
         emitChefState("idle", "Ready when you are.");
-        resolve();
+        done();
+      };
+      _currentAudio.onerror = () => {
+        emitSpeechState(false);
+        emitChefState("idle", "Ready when you are.");
+        done();
       };
       _currentAudio.play().catch((error) => {
         console.warn("Audio playback failed:", error);
         emitSpeechState(false);
         emitChefState("idle", "Ready when you are.");
-        resolve();
+        done();
       });
     });
+    if (myGen !== _generation) return;
   } catch (e) {
     if (e.name === "AbortError") return;
     console.warn("TTS error:", e);
