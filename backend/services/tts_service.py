@@ -47,7 +47,7 @@ async def synthesize_speech(text: str) -> AsyncIterator[bytes]:
         }
         buffer = b""
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=12.0) as client:
             async with client.stream("POST", url, json=payload, headers=headers) as response:
                 response.raise_for_status()
                 async for chunk in response.aiter_bytes(chunk_size=4096):

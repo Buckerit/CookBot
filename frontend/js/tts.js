@@ -63,6 +63,7 @@ export async function speak(text) {
   if (_abortController) { _abortController.abort(); }
   if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
   _abortController = new AbortController();
+  const _timeoutId = setTimeout(() => { if (_abortController) _abortController.abort(); }, 8000);
 
   try {
     emitChefState("talking", "Talking through the step.");
@@ -74,6 +75,7 @@ export async function speak(text) {
       body: JSON.stringify({ text }),
       signal: _abortController.signal,
     });
+    clearTimeout(_timeoutId);
 
     if (myGen !== _generation) return;
 
