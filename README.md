@@ -89,8 +89,6 @@ CookPilot is built with a modern AI stack:
 **FastAPI — REST API + WebSocket server**
 
 * Python 3.11
-* asyncpg — PostgreSQL async driver
-* PostgreSQL — recipe and chat session storage
 * OpenAI APIs — GPT-4o-mini (chat), GPT-4o (vision/entity extraction), Whisper (audio transcription fallback), TTS,
 * Realtime API (voice)
 * ElevenLabs — TTS (on the temp/main branch)
@@ -100,11 +98,7 @@ CookPilot is built with a modern AI stack:
 
 **Infrastructure**
 
-**Tech Stack**
-
 **Docker + docker-compose — local development**
-
-* GitHub — version control (Buckerit/CookPilot)
 
 ---
 
@@ -135,12 +129,6 @@ CookPilot keeps guiding you through the recipe.
 * Grocery list generation
 * Recipe recommendation based on available ingredients
 * Multi-language support
-
----
-
-## 👨‍💻 Authors
-
-Built during a hackathon to explore **AI-powered cooking assistants** and hands-free human-AI interaction in everyday tasks.
 
 ---
 
