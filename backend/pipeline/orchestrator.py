@@ -75,31 +75,56 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
     """Full video ingestion pipeline — runs as a background task."""
     from backend.pipeline import downloader, extractor, transcriber, ocr, vision, entity_extractor
 
-    _tasks[task_id] = IngestStatus(task_id=task_id, status="processing", progress_message="Starting download...")
+    _tasks[task_id] = IngestStatus(task_id=task_id, status="processing", progress_message="Starting...")
 
     try:
-        # Step 1: Try transcript first (fast path)
-        _update(task_id, progress_message="Checking for available transcript...")
-        transcript_path = await downloader.fetch_transcript(url, task_id)
+        # Step 1: Try youtube-transcript-api first (works from any server, no download needed)
+        _update(task_id, progress_message="Fetching transcript...")
+        transcript_data = await downloader.fetch_transcript_youtube_api(url)
 
-        # Step 2: Download video (needed for keyframes)
+        if transcript_data:
+            # Transcript-only fast path — no video download required
+            transcript, segments = transcript_data
+            video_id = downloader._extract_video_id(url) or url
+            logger.info("Transcript-only path for task %s", task_id)
+
+            _update(task_id, progress_message="Extracting recipe from transcript...")
+            recipe = await entity_extractor.extract_recipe_from_video(
+                transcript, [], [],
+                source_url=url, video_title=video_id, segments=segments,
+            )
+            await save_recipe(recipe)
+            _update(task_id, status="done", progress_message="Done!", recipe_id=recipe.id)
+            logger.info("Pipeline complete (transcript-only) for task %s → recipe %s", task_id, recipe.id)
+            return
+
+        # No transcript available — fall back to full video pipeline (requires cookies)
+        if not settings.youtube_cookies.strip():
+            raise RuntimeError(
+                "No transcript is available for this video, and video download requires "
+                "YouTube authentication on cloud servers. Please add a YOUTUBE_COOKIES "
+                "environment variable, or try a video that has captions enabled."
+            )
+
+        # Step 2: Download video (needs cookies on cloud)
         _update(task_id, progress_message="Downloading video...")
+        transcript_path = await downloader.fetch_transcript(url, task_id)
         video_path = await downloader.download_video(url, task_id)
 
         # Step 3: Extract audio + keyframes
         _update(task_id, progress_message="Extracting audio and frames...")
         audio_path, keyframe_paths, duration = await extractor.extract_media(video_path, task_id)
 
-        # Step 4: Get transcript from subtitles or Whisper
+        # Step 4: Transcript from VTT subtitles or Whisper
         if transcript_path:
-            logger.info("Using yt-dlp transcript, skipping Whisper")
+            logger.info("Using yt-dlp VTT transcript, skipping Whisper")
             _update(task_id, progress_message="Using available transcript...")
             transcript, segments = transcriber.parse_vtt_transcript(transcript_path)
         else:
             _update(task_id, progress_message="Transcribing audio...")
             transcript, segments = await transcriber.transcribe_audio(audio_path)
 
-        # If the transcript is sparse (<30 words/min), double the frame rate for better visual coverage
+        # Step 5: If transcript is sparse, extract denser frames
         word_count = len(transcript.split())
         words_per_minute = (word_count / duration * 60) if duration > 0 else 0
         fps_used = 0.5
@@ -109,24 +134,24 @@ async def run_url_pipeline(task_id: str, url: str) -> None:
             keyframe_paths = await extractor.extract_more_keyframes(video_path, task_id, fps=1.0)
             fps_used = 1.0
 
-        # Step 5: OCR frames (run concurrently with vision)
+        # Step 6: OCR + vision (concurrent)
         _update(task_id, progress_message="Analyzing frames...")
-        ocr_task = asyncio.create_task(ocr.ocr_frames(keyframe_paths))
-        vision_task = asyncio.create_task(vision.caption_frames(keyframe_paths))
-        ocr_results, vision_captions = await asyncio.gather(ocr_task, vision_task)
-
-        # Step 6: Entity extraction
-        _update(task_id, progress_message="Extracting recipe...")
-        video_title = video_path.stem  # yt-dlp names the file after the video title
-        recipe = await entity_extractor.extract_recipe_from_video(
-            transcript, ocr_results, vision_captions,
-            source_url=url, video_title=video_title, segments=segments,
+        ocr_results, vision_captions = await asyncio.gather(
+            asyncio.create_task(ocr.ocr_frames(keyframe_paths)),
+            asyncio.create_task(vision.caption_frames(keyframe_paths)),
         )
 
-        # Step 7: Assign step images from keyframes
+        # Step 7: Entity extraction
+        _update(task_id, progress_message="Extracting recipe...")
+        recipe = await entity_extractor.extract_recipe_from_video(
+            transcript, ocr_results, vision_captions,
+            source_url=url, video_title=video_path.stem, segments=segments,
+        )
+
+        # Step 8: Assign step images
         _assign_step_images(recipe, keyframe_paths, fps_used, task_id)
 
-        # Step 8: Save
+        # Step 9: Save
         await save_recipe(recipe)
         _update(task_id, status="done", progress_message="Done!", recipe_id=recipe.id)
         logger.info("Pipeline complete for task %s → recipe %s", task_id, recipe.id)

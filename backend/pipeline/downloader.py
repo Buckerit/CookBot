@@ -1,14 +1,38 @@
 import asyncio
 import subprocess
 import logging
+import re
 import tempfile
-import os
 from pathlib import Path
 from typing import Optional
 
 from backend.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _extract_video_id(url: str) -> Optional[str]:
+    match = re.search(r"(?:v=|youtu\.be/|embed/|shorts/)([A-Za-z0-9_-]{11})", url)
+    return match.group(1) if match else None
+
+
+async def fetch_transcript_youtube_api(url: str) -> Optional[tuple[str, list[dict]]]:
+    """Fetch transcript via youtube-transcript-api (no download, works from servers)."""
+    video_id = _extract_video_id(url)
+    if not video_id:
+        return None
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+        snippets = await asyncio.to_thread(
+            YouTubeTranscriptApi.get_transcript, video_id, languages=["en", "en-US", "en-GB"]
+        )
+        segments = [{"start": s["start"], "end": s["start"] + s["duration"], "text": s["text"]} for s in snippets]
+        transcript = " ".join(s["text"] for s in snippets)
+        logger.info("Fetched transcript via youtube-transcript-api for %s (%d segments)", video_id, len(segments))
+        return transcript, segments
+    except Exception as exc:
+        logger.info("youtube-transcript-api failed for %s: %s", video_id, exc)
+        return None
 
 
 def _cookies_args() -> list[str]:
@@ -35,6 +59,7 @@ async def fetch_transcript(url: str, task_id: str) -> Optional[Path]:
         "--sub-format", "vtt",
         "--output", str(output_dir / "%(title)s.%(ext)s"),
         "--no-playlist",
+        "--js-runtimes", "node",
         *_cookies_args(),
         url,
     ]
@@ -61,6 +86,7 @@ async def download_video(url: str, task_id: str) -> Path:
         "--output", output_template,
         "--no-playlist",
         "--max-filesize", "2G",
+        "--js-runtimes", "node",
         *_cookies_args(),
         url,
     ]
