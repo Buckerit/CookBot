@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -10,8 +11,17 @@ from backend.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _normalize_tts_text(text: str) -> str:
+    normalized = text.strip()
+    normalized = re.sub(r"(\d+)\s*°\s*F\b", r"\1 degrees Fahrenheit", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"(\d+)\s*°\s*C\b", r"\1 degrees Celsius", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"(\d+)\s*°\b", r"\1 degrees", normalized)
+    return normalized
+
+
 def _cache_path(text: str) -> Path:
-    digest_input = f"{settings.elevenlabs_voice_id}:{settings.elevenlabs_model_id}:{text}"
+    normalized = _normalize_tts_text(text)
+    digest_input = f"{settings.elevenlabs_voice_id}:{settings.elevenlabs_model_id}:{normalized}"
     digest = hashlib.sha256(digest_input.encode()).hexdigest()[:16]
     return settings.audio_cache_path / f"{digest}.mp3"
 
@@ -21,6 +31,7 @@ async def synthesize_speech(text: str) -> AsyncIterator[bytes]:
     if not settings.elevenlabs_api_key:
         raise RuntimeError("ELEVENLABS_API_KEY is not configured")
 
+    normalized_text = _normalize_tts_text(text)
     cached = _cache_path(text)
     if cached.exists():
         logger.debug("TTS cache hit for text hash %s", cached.stem)
@@ -33,12 +44,12 @@ async def synthesize_speech(text: str) -> AsyncIterator[bytes]:
 
         return _from_file()
 
-    logger.info("TTS API call for %d chars", len(text))
+    logger.info("TTS API call for %d chars", len(normalized_text))
 
     async def _from_elevenlabs() -> AsyncIterator[bytes]:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{settings.elevenlabs_voice_id}/stream"
         payload = {
-            "text": text,
+            "text": normalized_text,
             "model_id": settings.elevenlabs_model_id,
         }
         headers = {

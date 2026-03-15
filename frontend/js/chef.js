@@ -1,5 +1,6 @@
 let _resetTimer = null;
 let _lockedState = null;
+let _speechActive = false;
 
 function el(id) {
   return document.getElementById(id);
@@ -37,6 +38,10 @@ function onChefState(event) {
     overrideLock = false,
   } = event.detail || {};
 
+  if (_speechActive && state !== "talking" && !overrideLock && !clearLock) {
+    return;
+  }
+
   if (clearLock) {
     _lockedState = null;
     setChefState(state, caption, duration);
@@ -56,6 +61,18 @@ function onChefState(event) {
 
 document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("chefState", onChefState);
+  document.addEventListener("ttsSpeaking", (event) => {
+    _speechActive = Boolean(event.detail?.speaking);
+    if (_speechActive) {
+      setChefState("talking");
+      return;
+    }
+    if (_lockedState) {
+      setChefState(_lockedState.state);
+      return;
+    }
+    setChefState("idle");
+  });
 });
 
 export function emitChefState(state, caption = "", duration = 0, options = {}) {

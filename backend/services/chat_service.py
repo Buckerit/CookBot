@@ -68,6 +68,10 @@ _NAV_TRANSITIONS = {
 }
 _AMBIGUITY_NOTE_CACHE: dict[tuple[str, int], list[str]] = {}
 _INGREDIENT_ESTIMATE_CACHE: dict[tuple[str, str], str] = {}
+_SERVING_STEP_PATTERN = re.compile(
+    r"\b(?:serve|serving|plate|plating|garnish|enjoy|ready to eat|ready to serve)\b",
+    re.IGNORECASE,
+)
 
 
 def _session_path(session_id: str) -> Path:
@@ -135,6 +139,10 @@ def _build_system_prompt(recipe: Recipe) -> str:
     template = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     recipe_json = json.dumps(recipe.model_dump(mode="json"), indent=2)
     return template.replace("{recipe_json}", recipe_json) + f"\n\n## Conversion Reference\n{_CONVERSION_REFERENCE}"
+
+
+def _completion_message(recipe: Recipe) -> str:
+    return f"Congratulations!! You're all set. Plate up your {recipe.title} and enjoy!!"
 
 
 def _fallback_missing_amount(ingredient_name: str) -> str:
@@ -269,7 +277,7 @@ async def _ambiguity_notes(recipe: Recipe, step_index: int) -> list[str]:
 
 async def _step_message(recipe: Recipe, step_index: int) -> dict:
     if step_index >= len(recipe.steps):
-        instruction = recipe.completion_description or f"Your {recipe.title} is ready! Take a moment to admire your work before serving."
+        instruction = _completion_message(recipe)
         return {
             "type": "step_change",
             "payload": {
@@ -286,10 +294,15 @@ async def _step_message(recipe: Recipe, step_index: int) -> dict:
             },
         }
     step = recipe.steps[step_index]
+    is_serving_finish = step_index == len(recipe.steps) - 1 and _SERVING_STEP_PATTERN.search(step.instruction or "")
     ambiguity_notes = await _ambiguity_notes(recipe, step_index)
     instruction = step.instruction
     spoken_follow_up = " ".join(ambiguity_notes)
     tips = step.tips + ambiguity_notes
+    if is_serving_finish:
+        instruction = _completion_message(recipe)
+        spoken_follow_up = ""
+        tips = step.tips
     return {
         "type": "step_change",
         "payload": {

@@ -3,6 +3,7 @@
 import { loadRecipeList, getSelectedRecipe, getSavedSelectedRecipeId, selectRecipe } from "./recipe.js";
 import { clearCookingSessionPersistence, endCookingSession, getPersistedActiveSession, resetCookingUi, startCookingSession } from "./chat.js";
 import { api } from "./api.js";
+import { initializeAuth } from "./auth.js";
 import { icons } from "./icons.js";
 import { stopSpeaking } from "./tts.js";
 import { enableAutoListen } from "./realtime.js";
@@ -63,14 +64,18 @@ async function restoreUiState() {
 }
 
 async function init() {
-  const logoIcon = document.querySelector(".icon-logo");
+  document.querySelectorAll(".icon-logo").forEach((node) => {
+    node.innerHTML = icons.logoHat;
+  });
   const emptyIcon = document.querySelector(".icon-empty");
   const micIcon = document.querySelector("#btn-mic-toggle .icon-button");
   const ttsIcon = document.querySelector("#btn-tts-toggle .icon-button");
-  if (logoIcon) logoIcon.innerHTML = icons.logoHat;
   if (emptyIcon) emptyIcon.innerHTML = icons.logoHat;
   if (micIcon) micIcon.innerHTML = icons.mic;
   if (ttsIcon) ttsIcon.innerHTML = icons.speaker;
+
+  const authenticated = await initializeAuth();
+  if (!authenticated) return;
 
   await loadRecipeList();
   await restoreUiState();

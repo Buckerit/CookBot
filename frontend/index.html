@@ -3,17 +3,141 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CookPilot — Hands-Free Cooking</title>
+  <title>CookPilot - Hands-Free Cooking</title>
+  <link rel="icon" type="image/png" href="/images/icon.png" />
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div id="app">
-    <!-- Header -->
+  <div id="login-screen" class="auth-screen hidden">
+    <div class="auth-shell">
+      <div class="auth-topbar">
+        <div class="auth-brand">
+          <span class="icon icon-logo auth-logo" aria-hidden="true"></span>
+          <span>CookPilot</span>
+        </div>
+        <button id="btn-signup-top" class="auth-link-btn" type="button">Sign up</button>
+      </div>
+
+      <div class="auth-hero">
+        <div class="auth-copy">
+          <div class="auth-kicker">Kitchen copiloting, not kitchen chaos</div>
+          <h1>CookPilot</h1>
+          <p class="auth-subhead">
+            The hands-free AI sous-chef that keeps every recipe moving.
+          </p>
+          <p>
+            Turn recipe text or cooking videos into guided steps, smart timers, and calm voice help while you cook.
+          </p>
+          <div class="auth-actions">
+            <button id="btn-login" class="btn btn-primary auth-login-btn" type="button">Start Cooking</button>
+            <button id="btn-signup" class="btn btn-secondary auth-signup-btn" type="button">Create account</button>
+          </div>
+          <div class="auth-meta-strip">
+            <span>Voice-first guidance</span>
+            <span>Recipe and video parsing</span>
+            <span>Step-aware timers</span>
+          </div>
+          <div id="auth-login-message" class="auth-login-message hidden"></div>
+        </div>
+
+        <div class="auth-mascot-wrap">
+          <div class="auth-mascot auth-mascot-image-card" aria-hidden="true">
+            <div class="auth-mascot-crop">
+              <img
+                class="auth-mascot-sheet"
+                src="/images/chef.png"
+                alt=""
+                loading="eager"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-feature-row">
+        <article class="auth-feature-card">
+          <div class="auth-feature-label">Voice First</div>
+          <h3>Hands-free kitchen guidance</h3>
+          <p>Ask what is next, repeat a step, or get unstuck without tapping through a recipe with messy hands.</p>
+        </article>
+        <article class="auth-feature-card">
+          <div class="auth-feature-label">Multimodal</div>
+          <h3>Parses recipes and cooking videos</h3>
+          <p>Drop in written instructions or a video link and CookPilot structures ingredients, steps, and timing cues for you.</p>
+        </article>
+        <article class="auth-feature-card">
+          <div class="auth-feature-label">Step Aware</div>
+          <h3>Smart timers and next-step help</h3>
+          <p>CookPilot keeps your place, surfaces the next action, and helps you move through the recipe with confidence.</p>
+        </article>
+      </div>
+
+      <section class="auth-story-grid" aria-label="CookPilot overview">
+        <div class="auth-story-card auth-story-card-wide">
+          <div class="auth-section-kicker">How It Works</div>
+          <h2>From recipe chaos to calm cooking in three steps</h2>
+          <div class="auth-steps">
+            <article class="auth-step">
+              <span class="auth-step-num">1</span>
+              <div>
+                <h3>Paste a recipe or video</h3>
+                <p>Start with written instructions, a cooking article, or a video link.</p>
+              </div>
+            </article>
+            <article class="auth-step">
+              <span class="auth-step-num">2</span>
+              <div>
+                <h3>CookPilot structures it</h3>
+                <p>Ingredients, steps, timers, and step order are organized into a guided flow.</p>
+              </div>
+            </article>
+            <article class="auth-step">
+              <span class="auth-step-num">3</span>
+              <div>
+                <h3>Cook hands-free</h3>
+                <p>Ask what is next, repeat a step, or keep timers moving while you stay focused on the pan.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="auth-story-card">
+          <div class="auth-section-kicker">Live Demo Feel</div>
+          <h2>A quick taste of the interaction</h2>
+          <div class="auth-chat-snippet">
+            <div class="auth-chat-bubble auth-chat-bubble-user">User: “What’s next?”</div>
+            <div class="auth-chat-bubble auth-chat-bubble-bot">CookPilot: “Add 1 cup of sugar and stir for 30 seconds.”</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-problem-band" aria-label="CookPilot problem statement">
+        <div class="auth-problem-copy">
+          <div class="auth-section-kicker">Why It Helps</div>
+          <h2>Built for the moments when cooking gets messy</h2>
+          <p>
+            No more losing your place, smudging your screen, or scanning a recipe while three things are happening at once.
+          </p>
+        </div>
+        <div class="auth-problem-pills">
+          <span class="auth-problem-pill">Messy hands</span>
+          <span class="auth-problem-pill">Missed steps</span>
+          <span class="auth-problem-pill">Constant screen touching</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
     <header class="header">
       <div class="logo"><span class="icon icon-logo" aria-hidden="true"></span>CookPilot</div>
-      <div id="timer-mini" class="timer-mini hidden" title="Click to expand timer">
-        <span class="timer-mini-icon">⏱</span>
-        <span id="timer-mini-display">00:00</span>
+      <div class="header-actions">
+        <div id="auth-user" class="auth-user hidden"></div>
+        <button id="btn-logout" class="btn btn-secondary hidden">Log out</button>
+        <div id="timer-mini" class="timer-mini hidden" title="Click to expand timer">
+          <span class="timer-mini-icon">⏱</span>
+          <span id="timer-mini-display">00:00</span>
+        </div>
       </div>
     </header>
 
@@ -145,6 +269,7 @@
             <div class="chat-input-row">
               <input type="text" id="chat-input" placeholder='Ask anything — or say "next step"...' autocomplete="off" />
               <button id="btn-send" class="btn btn-primary">Send</button>
+              <button id="btn-skip-speech" class="btn btn-secondary" type="button">Skip Voice</button>
               <button id="btn-mic-toggle" class="btn btn-icon" title="Start live voice" aria-label="Start live voice" aria-pressed="false"><span class="icon icon-button" aria-hidden="true"></span></button>
               <button id="btn-tts-toggle" class="btn btn-icon" title="Toggle voice" aria-label="Toggle voice"><span class="icon icon-button" aria-hidden="true"></span></button>
             </div>
@@ -181,7 +306,9 @@
     </div>
   </div>
 
+  <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
   <script type="module" src="/static/js/api.js"></script>
+  <script type="module" src="/static/js/auth.js"></script>
   <script type="module" src="/static/js/icons.js"></script>
   <script type="module" src="/static/js/chef.js"></script>
   <script type="module" src="/static/js/recipe.js"></script>

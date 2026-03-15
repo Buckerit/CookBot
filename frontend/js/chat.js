@@ -24,6 +24,7 @@ let _sessionId = null;
 let _recipe = null;
 let _pendingTimer = null;
 let _eventQueue = Promise.resolve();
+let _speechRunId = 0;
 const _ACTIVE_SESSION_KEY = "cookassist:activeSession";
 
 const _READY_FOR_TIMER = [
@@ -49,7 +50,7 @@ const _END_SESSION_PATTERNS = [
 const _GOODBYE_PATTERNS = [
   /\b(thank you|thanks)\b.*\b(help|helping|assistance|support)?\b/i,
   /\b(goodbye|bye|see you|talk to you later|catch you later)\b/i,
-  /\b(that is all|that's all|all done|im done|i'm done)\b/i,
+  /\b(that is all|that's all)\b/i,
 ];
 
 function el(id) { return document.getElementById(id); }
@@ -213,7 +214,10 @@ function updateStepUI(payload) {
 
   // Progress bar
   el("step-label").textContent = is_completion ? "All done!" : `Step ${step_number} of ${total_steps}`;
-  el("progress-fill").style.width = "100%";
+  const progress = is_completion
+    ? 100
+    : Math.max(0, Math.min(100, (step_number / Math.max(total_steps, 1)) * 100));
+  el("progress-fill").style.width = `${progress}%`;
   el("step-card")?.classList.toggle("step-completion", is_completion);
 
   // Step card
@@ -254,16 +258,20 @@ function updateStepUI(payload) {
 
 async function handleEvent(event) {
   const { type, payload } = event;
+  const runId = _speechRunId;
 
   if (type === "step_change") {
     _pendingTimer = null;
     updateStepUI(payload);
+    if (runId !== _speechRunId) return;
     emitChefState("talking", "Talking through the step.", 0, { overrideLock: true });
     await speak(payload.instruction);
+    if (runId !== _speechRunId) return;
     if (payload.spoken_follow_up) {
       appendBubble(payload.spoken_follow_up, "bot");
       emitChefState("talking", "Talking through the step.", 0, { overrideLock: true });
       await speak(payload.spoken_follow_up);
+      if (runId !== _speechRunId) return;
     }
     if (payload.duration_seconds) {
       _pendingTimer = {
@@ -277,6 +285,7 @@ async function handleEvent(event) {
     }
   } else if (type === "bot_message") {
     appendBubble(payload.content, "bot");
+    if (runId !== _speechRunId) return;
     await speak(payload.content);
   } else if (type === "timer_start") {
     _pendingTimer = {
@@ -303,6 +312,7 @@ export async function startCookingSession(recipe, sessionId) {
   _recipe = recipe;
   _sessionId = sessionId;
   _pendingTimer = null;
+  _speechRunId += 1;
   _eventQueue = Promise.resolve();  // clear any pending events from previous session
   persistActiveSession();
 
@@ -349,6 +359,8 @@ export async function startCookingSession(recipe, sessionId) {
 }
 
 export function endCookingSession() {
+  _speechRunId += 1;
+  _eventQueue = Promise.resolve();
   stopSpeaking();
   stopRealtimeSession();
   resetCookingUi();
@@ -360,6 +372,8 @@ export function clearCookingSessionPersistence() {
 }
 
 export function resetCookingUi() {
+  _speechRunId += 1;
+  _eventQueue = Promise.resolve();
   stopSpeaking();
   _recipe = null;
   _sessionId = null;
@@ -382,17 +396,17 @@ export function resetCookingUi() {
 }
 
 export function sendMessage(text) {
-  if (isGoodbyeIntent(text)) {
-    handleGoodbye(text);
-    return;
-  }
+  if (maybeStartPendingTimer(text)) return;
+  if (maybeHandleTimerCommand(text)) return;
   if (isSessionEndIntent(text)) {
     appendBubble(text, "user");
     endCookingSession();
     return;
   }
-  if (maybeStartPendingTimer(text)) return;
-  if (maybeHandleTimerCommand(text)) return;
+  if (isGoodbyeIntent(text)) {
+    handleGoodbye(text);
+    return;
+  }
   if (!_ws || _ws.readyState !== WebSocket.OPEN) {
     console.warn("WebSocket not connected");
     return;
@@ -419,6 +433,9 @@ document.addEventListener("DOMContentLoaded", () => {
   btn?.addEventListener("click", submit);
   input?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
+  });
+  el("btn-skip-speech")?.addEventListener("click", () => {
+    stopSpeaking();
   });
 
   el("btn-timer-cancel")?.addEventListener("click", () => dismissTimer());

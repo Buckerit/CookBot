@@ -44,10 +44,24 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/auth/config")
+async def auth_config():
+    return {
+        "domain": settings.auth0_domain,
+        "clientId": settings.auth0_client_id,
+        "audience": settings.auth0_audience,
+    }
+
+
 # Serve recipe step images
 _recipes_dir = Path(settings.storage_base) / "recipes"
 _recipes_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/recipe-images", StaticFiles(directory=str(_recipes_dir)), name="recipe-images")
+
+# Serve uploaded brand and mascot assets
+_images_dir = Path(__file__).parent.parent / "images"
+if _images_dir.exists():
+    app.mount("/images", StaticFiles(directory=str(_images_dir)), name="images")
 
 # Serve frontend static files
 _frontend = Path(__file__).parent.parent / "frontend"
