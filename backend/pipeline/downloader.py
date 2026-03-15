@@ -21,6 +21,7 @@ async def fetch_transcript(url: str, task_id: str) -> Optional[Path]:
         "--sub-format", "vtt",
         "--output", str(output_dir / "%(title)s.%(ext)s"),
         "--no-playlist",
+        "--extractor-args", "youtube:player_client=ios,web",
         url,
     ]
     logger.info("Fetching transcript for: %s", url)
@@ -46,6 +47,7 @@ async def download_video(url: str, task_id: str) -> Path:
         "--output", output_template,
         "--no-playlist",
         "--max-filesize", "2G",
+        "--extractor-args", "youtube:player_client=ios,web",
         url,
     ]
 
