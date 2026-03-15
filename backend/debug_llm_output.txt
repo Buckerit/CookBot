@@ -1,162 +1,226 @@
 {
-  "title": "Cheesecake",
-  "description": null,
-  "servings": "8 servings",
-  "prep_time_minutes": 30,
-  "cook_time_minutes": 60,
-  "cuisine": null,
-  "tags": ["dessert", "baked"],
+  "title": "Gochujang Chicken Rice Bowl With Green Onions",
+  "description": "A simple and delicious chicken rice bowl perfect for a weeknight dinner.",
+  "servings": null,
+  "prep_time_minutes": null,
+  "cook_time_minutes": 15,
+  "cuisine": "Korean",
+  "tags": ["dinner", "Korean", "quick", "easy"],
   "ingredients": [
     {
-      "name": "nonstick cooking spray",
-      "quantity": null,
-      "unit": null,
-      "notes": "for greasing"
+      "name": "chicken thighs",
+      "quantity": "1",
+      "unit": "pound",
+      "notes": "cut into bite-sized pieces"
     },
     {
-      "name": "graham cracker",
-      "quantity": "7",
-      "unit": "oz",
-      "notes": "(200 g)"
+      "name": "soy sauce",
+      "quantity": "0.5",
+      "unit": "tablespoon",
+      "notes": "for marinade"
+    },
+    {
+      "name": "mirin",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for marinade"
+    },
+    {
+      "name": "garlic powder",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for marinade"
+    },
+    {
+      "name": "olive oil",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for marinade"
+    },
+    {
+      "name": "black pepper",
+      "quantity": null,
+      "unit": null,
+      "notes": "a few shakes, for marinade"
+    },
+    {
+      "name": "cornstarch",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for marinade"
+    },
+    {
+      "name": "green onions",
+      "quantity": null,
+      "unit": null,
+      "notes": "use white parts, or substitute with yellow onion"
+    },
+    {
+      "name": "gochujang",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "Korean chili paste, for sauce"
+    },
+    {
+      "name": "Korean chili pepper flakes",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for sauce"
+    },
+    {
+      "name": "soy sauce",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for sauce"
+    },
+    {
+      "name": "oyster sauce",
+      "quantity": "1",
+      "unit": "tablespoon",
+      "notes": "for sauce"
+    },
+    {
+      "name": "chicken bouillon powder",
+      "quantity": "1",
+      "unit": "teaspoon",
+      "notes": "for sauce"
     },
     {
       "name": "sugar",
-      "quantity": "2",
-      "unit": "cups",
-      "notes": "(400 g), plus 1 tablespoon, divided"
+      "quantity": "0.5",
+      "unit": "tablespoon",
+      "notes": "for sauce"
     },
     {
-      "name": "unsalted butter",
-      "quantity": "5",
-      "unit": "tablespoons",
-      "notes": "melted"
-    },
-    {
-      "name": "cream cheese",
-      "quantity": "32",
-      "unit": "oz",
-      "notes": "(905 g), room temperature"
-    },
-    {
-      "name": "heavy cream",
-      "quantity": "½",
-      "unit": "cup",
-      "notes": "(120 mL)"
-    },
-    {
-      "name": "sour cream",
-      "quantity": "2",
-      "unit": "cups",
-      "notes": "(460 g)"
-    },
-    {
-      "name": "all-purpose flour",
-      "quantity": "5",
-      "unit": "tablespoons",
-      "notes": null
-    },
-    {
-      "name": "kosher salt",
+      "name": "mirin",
       "quantity": "1",
-      "unit": "pinch",
-      "notes": null
+      "unit": "tablespoon",
+      "notes": "for sauce"
     },
     {
-      "name": "vanilla bean",
+      "name": "black pepper",
       "quantity": null,
       "unit": null,
-      "notes": null
+      "notes": "a few shakes, for sauce"
     },
     {
-      "name": "large eggs",
-      "quantity": "4",
-      "unit": null,
-      "notes": null
+      "name": "sesame oil",
+      "quantity": "0.5",
+      "unit": "teaspoon",
+      "notes": "for sauce"
     },
     {
-      "name": "boiling water",
+      "name": "water",
+      "quantity": "0.25",
+      "unit": "cup",
+      "notes": "for sauce"
+    },
+    {
+      "name": "cornstarch",
+      "quantity": "0.5",
+      "unit": "tablespoon",
+      "notes": "for sauce"
+    },
+    {
+      "name": "rice",
       "quantity": null,
       "unit": null,
-      "notes": "for baking"
+      "notes": "cooked, for serving"
     },
     {
-      "name": "mixed berry",
+      "name": "soft boiled egg",
       "quantity": null,
       "unit": null,
-      "notes": "for serving"
+      "notes": "for garnish"
+    },
+    {
+      "name": "toasted sesame seeds",
+      "quantity": null,
+      "unit": null,
+      "notes": "for garnish"
     }
   ],
   "steps": [
     {
       "index": 0,
-      "instruction": "Preheat the oven to 350˚F (180˚C). Grease a 10-inch (25 cm) springform pan with nonstick spray. Line the inside edges of the pan with parchment paper.",
+      "instruction": "Cut 1 pound of chicken thighs into bite-sized pieces.",
       "duration_seconds": null,
       "tips": [],
-      "ingredients_used": []
+      "ingredients_used": ["chicken thighs"],
+      "timestamp_start_seconds": 80.4,
+      "timestamp_end_seconds": 84.5
     },
     {
       "index": 1,
-      "instruction": "In the bowl of a food processor, combine the graham crackers, 1 tablespoon of sugar, and the melted butter. Pulse to combine until the texture is similar to wet sand.",
+      "instruction": "Marinate the chicken with 0.5 tablespoon soy sauce, 1 tablespoon mirin, 1 tablespoon garlic powder, 1 tablespoon olive oil, a few shakes of black pepper, and 1 tablespoon cornstarch. Massage well.",
       "duration_seconds": null,
       "tips": [],
-      "ingredients_used": ["graham cracker", "sugar", "unsalted butter"]
+      "ingredients_used": ["chicken thighs", "soy sauce", "mirin", "garlic powder", "olive oil", "black pepper", "cornstarch"],
+      "timestamp_start_seconds": 116.1,
+      "timestamp_end_seconds": 128.6
     },
     {
       "index": 2,
-      "instruction": "Press the graham cracker crumbs into the prepared pan, using a measuring cup to compact in even layer.",
+      "instruction": "Prepare the green onions by slicing the white parts.",
       "duration_seconds": null,
-      "tips": [],
-      "ingredients_used": ["graham cracker"]
+      "tips": ["Substitute with yellow onion if needed."],
+      "ingredients_used": ["green onions"],
+      "timestamp_start_seconds": 144.7,
+      "timestamp_end_seconds": 153.5
     },
     {
       "index": 3,
-      "instruction": "Bake for 8-10 minutes, until golden brown. Transfer to a wire rack and let cool to room temperature.",
-      "duration_seconds": 600,
+      "instruction": "In a small container, mix 1 tablespoon gochujang, 1 tablespoon Korean chili pepper flakes, 1 tablespoon soy sauce, 1 tablespoon oyster sauce, 1 teaspoon chicken bouillon powder, 0.5 tablespoon sugar, 1 tablespoon mirin, a few shakes of black pepper, 0.5 teaspoon sesame oil, 0.25 cup water, and 0.5 tablespoon cornstarch to make the sauce.",
+      "duration_seconds": null,
       "tips": [],
-      "ingredients_used": []
+      "ingredients_used": ["gochujang", "Korean chili pepper flakes", "soy sauce", "oyster sauce", "chicken bouillon powder", "sugar", "mirin", "black pepper", "sesame oil", "water", "cornstarch"],
+      "timestamp_start_seconds": 177.3,
+      "timestamp_end_seconds": 200.1
     },
     {
       "index": 4,
-      "instruction": "Once cool, line the sides of the springform pan with parchment paper.",
-      "duration_seconds": null,
-      "tips": [],
-      "ingredients_used": []
+      "instruction": "Heat 1 tablespoon oil in a large pan over high heat. Add the green onions and cook for about 2 minutes until charred. Remove and set aside.",
+      "duration_seconds": 120,
+      "tips": ["Do not skip this step for added aroma."],
+      "ingredients_used": ["green onions"],
+      "timestamp_start_seconds": 205.1,
+      "timestamp_end_seconds": 228.6
     },
     {
       "index": 5,
-      "instruction": "In a large bowl, combine the cream cheese, remaining 2 cups (400 G) of sugar, and the salt. Using an electric hand mixer, blend until well-combined and fluffy.",
-      "duration_seconds": null,
-      "tips": [],
-      "ingredients_used": ["cream cheese", "sugar", "kosher salt"]
+      "instruction": "In the same pan, heat another tablespoon of oil over high heat. Add the marinated chicken in a single layer and sear for about 2 minutes. Flip and cook the other side for 3 to 4 minutes until cooked through.",
+      "duration_seconds": 360,
+      "tips": ["Check the thickest piece to ensure it's cooked."],
+      "ingredients_used": ["chicken thighs"],
+      "timestamp_start_seconds": 233.5,
+      "timestamp_end_seconds": 252.0
     },
     {
       "index": 6,
-      "instruction": "Add the heavy cream and beat to incorporate.",
-      "duration_seconds": null,
-      "tips": [],
-      "ingredients_used": ["heavy cream"]
+      "instruction": "Add the charred green onions back to the pan and stir fry with the chicken for about 1 minute.",
+      "duration_seconds": 60,
+      "tips": ["This will infuse the chicken with the green onion aroma."],
+      "ingredients_used": ["green onions", "chicken thighs"],
+      "timestamp_start_seconds": 252.0,
+      "timestamp_end_seconds": 258.5
     },
     {
       "index": 7,
-      "instruction": "Add the sour cream, flour, salt, and vanilla bean seeds, and beat to combine.",
-      "duration_seconds": null,
+      "instruction": "Stir the sauce and pour it into the pan. Stir everything together for about 1 minute until coated.",
+      "duration_seconds": 60,
       "tips": [],
-      "ingredients_used": ["sour cream", "all-purpose flour", "kosher salt", "vanilla bean"]
+      "ingredients_used": ["gochujang", "Korean chili pepper flakes", "soy sauce", "oyster sauce", "chicken bouillon powder", "sugar", "mirin", "black pepper", "sesame oil", "water", "cornstarch"],
+      "timestamp_start_seconds": 258.5,
+      "timestamp_end_seconds": 261.0
     },
     {
       "index": 8,
-      "instruction": "Add the eggs, 1 at a time, and mix until fully combined, making sure not to over-beat. The mixture should be smooth and creamy.",
+      "instruction": "Serve the chicken and green onions over a bed of cooked rice. Garnish with a soft boiled egg and toasted sesame seeds.",
       "duration_seconds": null,
       "tips": [],
-      "ingredients_used": ["large eggs"]
-    },
-    {
-      "index": 9,
-      "instruction": "Pour the cream cheese mixture into the cooled crust.",
-      "duration_seconds": null,
-      "tips": [],
-      "ingredients_used": []
-    },
-    {
-      "index": 10,
-      "instruction": "Wrap the outside of the springform pan tightly with foil and place the pan in a large
+      "ingredients_used": ["rice", "chicken thighs", "green onions", "soft boiled egg", "toasted sesame seeds"],
+      "timestamp_start_seconds": 261.0,
+      "timestamp_end_seconds": null
+    }
+  ]
+}

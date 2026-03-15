@@ -18,6 +18,10 @@ class Step(BaseModel):
     duration_seconds: Optional[int] = None
     tips: list[str] = Field(default_factory=list)
     ingredients_used: list[str] = Field(default_factory=list)
+    timestamp_start_seconds: Optional[float] = None
+    timestamp_end_seconds: Optional[float] = None
+    image_timestamp_seconds: Optional[float] = None
+    image_url: Optional[str] = None
 
 
 class Recipe(BaseModel):

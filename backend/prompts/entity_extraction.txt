@@ -25,7 +25,10 @@ Return ONLY valid JSON matching this schema:
       "instruction": "string (clear, complete instruction for this step)",
       "duration_seconds": "integer or null (if a time is mentioned, convert to seconds)",
       "tips": ["array of tip strings for this step"],
-      "ingredients_used": ["array of ingredient names used in this step"]
+      "ingredients_used": ["array of ingredient names used in this step"],
+      "timestamp_start_seconds": "float or null — video timestamp (seconds) when this step begins",
+      "timestamp_end_seconds": "float or null — video timestamp (seconds) when this step ends",
+      "image_timestamp_seconds": "float or null — the single best video timestamp (seconds) to capture for this step's image; choose the moment the key ingredient is first visible or being actively used"
     }
   ]
 }
@@ -40,4 +43,5 @@ Rules:
 - Convert all cooking times (e.g. "15 minutes", "1 hour 30 minutes") to duration_seconds.
 - ingredients_used should reference ingredients by name as they appear in the ingredients list.
 - tags can include meal type (breakfast, dinner), dietary (vegan, gluten-free), cooking method (baked, fried), etc.
+- If timed transcript segments are provided, use them to estimate the video timestamps for each step. Set image_timestamp_seconds to the moment within the step when the key ingredient first appears or is actively being handled.
 - Return ONLY the JSON object, no markdown, no explanation.

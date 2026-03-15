@@ -39,6 +39,12 @@ export const api = {
     return fetchJson("/ingest/file", { method: "POST", headers: {}, body: fd });
   },
 
+  ingestRecipeUrl: (url) =>
+    fetchJson("/ingest/recipe-url", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
+
   getIngestStatus: (taskId) => fetchJson(`/ingest/status/${taskId}`),
 
   // Chat sessions

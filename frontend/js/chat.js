@@ -1,14 +1,16 @@
 // chat.js — WebSocket chat + step management
 
-import { speak } from "./tts.js";
+import { speak, stopSpeaking } from "./tts.js";
 import {
   addTime,
   dismissTimer,
   hasActiveTimer,
+  hideTimerWidget,
   parseTimerCommand,
   pauseTimer,
   resetTimer,
   resumeTimer,
+  showTimerWidget,
   startTimer,
   subtractTime,
 } from "./timer.js";
@@ -181,7 +183,7 @@ function maybeHandleTimerCommand(text) {
 }
 
 function updateStepUI(payload) {
-  const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds } = payload;
+  const { step_index, step_number, total_steps, instruction, tips = [], ingredients_used = [], duration_seconds, image_url } = payload;
 
   // Progress bar
   el("step-label").textContent = `Step ${step_number} of ${total_steps}`;
@@ -195,6 +197,17 @@ function updateStepUI(payload) {
 
   const ingEl = el("step-ingredients");
   ingEl.innerHTML = ingredients_used.map(i => `<span class="ingredient-chip">${esc(i)}</span>`).join("");
+
+  // Step image
+  const imgEl = el("step-image");
+  if (imgEl) {
+    if (image_url) {
+      imgEl.src = image_url;
+      imgEl.classList.remove("hidden");
+    } else {
+      imgEl.classList.add("hidden");
+    }
+  }
 
   // Sidebar highlight
   highlightStep(step_index);
@@ -250,6 +263,8 @@ async function handleEvent(event) {
 export async function startCookingSession(recipe, sessionId) {
   _recipe = recipe;
   _sessionId = sessionId;
+  _pendingTimer = null;
+  _eventQueue = Promise.resolve();  // clear any pending events from previous session
   persistActiveSession();
 
   // Show chat UI
@@ -257,6 +272,14 @@ export async function startCookingSession(recipe, sessionId) {
   el("chat-active").classList.remove("hidden");
   el("chat-messages").innerHTML = "";
   el("timer-widget").classList.add("hidden");
+
+  // Reset step card to blank state before WS connects
+  el("step-label").textContent = "Step 1 of ?";
+  el("progress-fill").style.width = "0%";
+  el("step-instruction").textContent = "—";
+  el("step-tips").innerHTML = "";
+  el("step-ingredients").innerHTML = "";
+  el("step-image")?.classList.add("hidden");
 
   // Connect WebSocket
   if (_ws) { _ws.close(); }
@@ -290,6 +313,7 @@ export function clearCookingSessionPersistence() {
 }
 
 export function resetCookingUi() {
+  stopSpeaking();
   _recipe = null;
   _sessionId = null;
   _pendingTimer = null;
@@ -307,6 +331,7 @@ export function resetCookingUi() {
   el("step-instruction").textContent = "—";
   el("step-tips").innerHTML = "";
   el("step-ingredients").innerHTML = "";
+  el("step-image")?.classList.add("hidden");
 }
 
 export function sendMessage(text) {
@@ -336,6 +361,10 @@ document.addEventListener("DOMContentLoaded", () => {
   input?.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
   });
+
+  el("btn-timer-cancel")?.addEventListener("click", () => dismissTimer());
+  el("btn-timer-hide")?.addEventListener("click", () => hideTimerWidget());
+  el("timer-mini")?.addEventListener("click", () => showTimerWidget());
 });
 
 // Jump to step from sidebar click

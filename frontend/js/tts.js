@@ -7,11 +7,21 @@ import { isRealtimeActive } from "./realtime.js";
 let _enabled = true;
 let _currentAudio = null;
 let _audioUnlocked = false;
+let _generation = 0;
+let _abortController = null;
 
 const _SILENT_AUDIO =
   "data:audio/mp3;base64,SUQzAwAAAAAAFlRFTkMAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//uQxAADBzQAHgAAGFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFj/+5DEAAEHNAAeAAAYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFg==";
 
 export function isTTSEnabled() { return _enabled; }
+
+export function stopSpeaking() {
+  _generation++;
+  if (_abortController) { _abortController.abort(); _abortController = null; }
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  emitSpeechState(false);
+  emitChefState("idle", "Ready when you are.");
+}
 
 function emitSpeechState(speaking) {
   document.dispatchEvent(new CustomEvent("ttsSpeaking", { detail: { speaking } }));
@@ -47,11 +57,10 @@ export function toggleTTS() {
 export async function speak(text) {
   if (!_enabled || !text || isRealtimeActive()) return;
 
-  // Stop any playing audio
-  if (_currentAudio) {
-    _currentAudio.pause();
-    _currentAudio = null;
-  }
+  const myGen = ++_generation;
+  if (_abortController) { _abortController.abort(); }
+  if (_currentAudio) { _currentAudio.pause(); _currentAudio = null; }
+  _abortController = new AbortController();
 
   try {
     emitChefState("talking", "Talking through the step.");
@@ -61,7 +70,10 @@ export async function speak(text) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text }),
+      signal: _abortController.signal,
     });
+
+    if (myGen !== _generation) return;
 
     if (!res.ok) {
       console.warn("TTS request failed:", res.status);
@@ -71,6 +83,8 @@ export async function speak(text) {
     }
 
     const blob = await res.blob();
+    if (myGen !== _generation) return;
+
     const url = URL.createObjectURL(blob);
     _currentAudio = new Audio(url);
     _currentAudio.preload = "auto";
@@ -95,6 +109,7 @@ export async function speak(text) {
       });
     });
   } catch (e) {
+    if (e.name === "AbortError") return;
     console.warn("TTS error:", e);
     emitSpeechState(false);
     emitChefState("idle", "Ready when you are.");

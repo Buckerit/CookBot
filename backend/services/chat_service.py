@@ -181,6 +181,7 @@ def _step_message(recipe: Recipe, step_index: int) -> dict:
             "ingredients_used": step.ingredients_used,
             "duration_seconds": step.duration_seconds,
             "spoken_follow_up": " ".join(ambiguity_notes),
+            "image_url": step.image_url,
         },
     }
 

@@ -11,6 +11,10 @@
     <!-- Header -->
     <header class="header">
       <div class="logo"><span class="icon icon-logo" aria-hidden="true"></span>CookAssist</div>
+      <div id="timer-mini" class="timer-mini hidden" title="Click to expand timer">
+        <span class="timer-mini-icon">⏱</span>
+        <span id="timer-mini-display">00:00</span>
+      </div>
     </header>
 
     <!-- Main layout -->
@@ -33,7 +37,7 @@
           <div class="tabs">
             <button class="tab active" data-tab="text">Paste Text</button>
             <button class="tab" data-tab="url">Video URL</button>
-            <button class="tab" data-tab="file">Upload File</button>
+            <button class="tab" data-tab="recipe-url">Recipe URL</button>
           </div>
 
           <!-- Text tab -->
@@ -49,10 +53,10 @@
             <div id="url-status" class="status-box hidden"></div>
           </div>
 
-          <!-- File tab -->
-          <div class="tab-content" id="tab-file">
-            <input type="file" id="ingest-file" accept=".txt,.pdf" />
-            <button id="btn-ingest-file" class="btn btn-primary">Upload & Parse</button>
+          <!-- Recipe URL tab -->
+          <div class="tab-content" id="tab-recipe-url">
+            <input type="text" id="ingest-recipe-url" placeholder="https://www.allrecipes.com/recipe/..." inputmode="url" />
+            <button id="btn-ingest-recipe-url" class="btn btn-primary">Import Recipe</button>
           </div>
 
           <div id="ingest-error" class="error-msg hidden"></div>
@@ -107,7 +111,10 @@
           <!-- Current step card -->
           <div class="step-card" id="step-card">
             <div class="step-kicker">Current Step</div>
-            <div class="step-instruction" id="step-instruction">—</div>
+            <div class="step-card-body">
+              <div class="step-instruction" id="step-instruction">—</div>
+              <img id="step-image" class="step-image hidden" alt="Step image" />
+            </div>
             <div class="step-tips" id="step-tips"></div>
             <div class="step-ingredients" id="step-ingredients"></div>
           </div>
@@ -119,6 +126,10 @@
               <div class="timer-step" id="timer-step">Waiting for a timed step</div>
             </div>
             <div class="timer-display" id="timer-display">00:00</div>
+            <div class="timer-actions">
+              <button id="btn-timer-hide" class="btn btn-secondary">Hide</button>
+              <button id="btn-timer-cancel" class="btn btn-danger">Cancel</button>
+            </div>
           </div>
 
           <!-- Chat messages -->

@@ -16,7 +16,7 @@ function showError(msg) {
 function setLoading(on) {
   el("btn-ingest-text").disabled = on;
   el("btn-ingest-url").disabled = on;
-  el("btn-ingest-file").disabled = on;
+  el("btn-ingest-recipe-url").disabled = on;
   emitChefState(on ? "thinking" : "idle", on ? "Thinking through that recipe..." : "Ready when you are.");
 }
 
@@ -65,16 +65,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // === File ingest ===
-  el("btn-ingest-file")?.addEventListener("click", async () => {
-    const fileInput = el("ingest-file");
-    if (!fileInput.files.length) { showError("Please select a file."); return; }
+  // === Recipe URL ingest ===
+  el("btn-ingest-recipe-url")?.addEventListener("click", async () => {
+    const url = el("ingest-recipe-url").value.trim();
+    if (!url) { showError("Please enter a recipe URL."); return; }
     setLoading(true);
     try {
-      const recipe = await api.ingestFile(fileInput.files[0]);
+      const recipe = await api.ingestRecipeUrl(url);
       addRecipeToList(recipe);
-      fileInput.value = "";
-      emitChefState("celebrate", "Recipe uploaded successfully.", 1800);
+      el("ingest-recipe-url").value = "";
+      emitChefState("celebrate", "Recipe imported successfully.", 1800);
     } catch (e) {
       showError(`Error: ${e.message}`);
     } finally {

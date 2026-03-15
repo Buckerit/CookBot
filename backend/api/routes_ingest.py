@@ -12,6 +12,7 @@ from backend.models.recipe import Recipe
 from backend.pipeline.text_parser import parse_recipe_text
 from backend.pipeline.orchestrator import get_status, run_url_pipeline, _tasks
 from backend.services.recipe_store import save_recipe
+from backend.services.web_scraper import scrape_recipe_page
 from backend.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,10 @@ class TextIngestRequest(BaseModel):
 
 
 class UrlIngestRequest(BaseModel):
+    url: str
+
+
+class RecipeUrlRequest(BaseModel):
     url: str
 
 
@@ -61,6 +66,21 @@ async def get_ingest_status(task_id: str):
     if not status:
         raise HTTPException(status_code=404, detail="Task not found")
     return status
+
+
+@router.post("/recipe-url", response_model=Recipe)
+async def ingest_recipe_url(request: RecipeUrlRequest):
+    """Scrape a recipe website URL and parse it as a recipe."""
+    if not request.url.strip():
+        raise HTTPException(status_code=400, detail="URL cannot be empty")
+    try:
+        text = await scrape_recipe_page(request.url)
+        recipe = await parse_recipe_text(text, source_url=request.url)
+        save_recipe(recipe)
+        return recipe
+    except Exception as exc:
+        logger.error("Recipe URL ingest failed: %s", exc)
+        raise HTTPException(status_code=500, detail=f"Failed to import recipe: {exc}")
 
 
 @router.post("/file", response_model=Recipe)

@@ -2,10 +2,35 @@ import asyncio
 import subprocess
 import logging
 from pathlib import Path
+from typing import Optional
 
 from backend.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+async def fetch_transcript(url: str, task_id: str) -> Optional[Path]:
+    """Try to download auto-captions via yt-dlp. Returns path to VTT file or None."""
+    output_dir = settings.downloads_path / task_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "yt-dlp",
+        "--write-auto-sub", "--write-sub",
+        "--sub-lang", "en",
+        "--skip-download",
+        "--sub-format", "vtt",
+        "--output", str(output_dir / "%(title)s.%(ext)s"),
+        "--no-playlist",
+        url,
+    ]
+    logger.info("Fetching transcript for: %s", url)
+    result = await asyncio.to_thread(lambda: subprocess.run(cmd, capture_output=True))
+    vtt_files = list(output_dir.glob("*.vtt"))
+    if vtt_files:
+        logger.info("Found transcript: %s", vtt_files[0].name)
+        return vtt_files[0]
+    logger.info("No transcript available for: %s", url)
+    return None
 
 
 async def download_video(url: str, task_id: str) -> Path:

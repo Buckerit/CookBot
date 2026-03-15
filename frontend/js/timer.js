@@ -8,6 +8,7 @@ let _lastTick = null;
 let _activeStepText = "";
 let _isRunning = false;
 let _dismissTimeoutId = null;
+let _widgetHidden = false;
 
 const _CREATE_TIMER_PATTERN = /\b(?:set|start|create)\s+(?:a\s+)?timer\s+(?:for\s+)?(.+)/i;
 const _BARE_TIMER_PATTERN = /\btimer\s+(?:for\s+)?(.+)/i;
@@ -81,7 +82,9 @@ function durationLabel(seconds) {
 }
 
 function updateDisplay() {
-  el("timer-display").textContent = format(_remaining);
+  const formatted = format(_remaining);
+  el("timer-display").textContent = formatted;
+  el("timer-mini-display").textContent = formatted;
 }
 
 function setStepLabel(text) {
@@ -121,14 +124,32 @@ function parseDurationSeconds(text) {
 }
 
 function showTimer(stepText = "") {
+  _widgetHidden = false;
   el("timer-widget").classList.remove("hidden");
+  el("timer-mini").classList.add("hidden");
   setStepLabel(stepText || "Timer is running");
   updateDisplay();
 }
 
 function hideTimer() {
   el("timer-widget").classList.add("hidden");
+  el("timer-mini").classList.add("hidden");
   setStepLabel("Waiting for a timed step");
+}
+
+export function hideTimerWidget() {
+  _widgetHidden = true;
+  el("timer-widget").classList.add("hidden");
+  el("timer-mini").classList.remove("hidden");
+  activeContainer()?.classList.remove("timer-live");
+}
+
+export function showTimerWidget() {
+  if (!hasActiveTimer()) return;
+  _widgetHidden = false;
+  el("timer-widget").classList.remove("hidden");
+  el("timer-mini").classList.add("hidden");
+  activeContainer()?.classList.add("timer-live");
 }
 
 function tick() {
@@ -187,6 +208,7 @@ export function dismissTimer() {
   _totalSeconds = 0;
   _remaining = 0;
   _activeStepText = "";
+  _widgetHidden = false;
   hideTimer();
 }
 
@@ -293,3 +315,4 @@ document.addEventListener("visibilitychange", () => {
     _lastTick = performance.now();
   }
 });
+

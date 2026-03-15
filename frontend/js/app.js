@@ -4,6 +4,7 @@ import { loadRecipeList, getSelectedRecipe, getSavedSelectedRecipeId, selectReci
 import { clearCookingSessionPersistence, getPersistedActiveSession, resetCookingUi, startCookingSession } from "./chat.js";
 import { api } from "./api.js";
 import { icons } from "./icons.js";
+import { stopSpeaking } from "./tts.js";
 
 function el(id) { return document.getElementById(id); }
 let _activeCookingRecipeId = null;
@@ -57,6 +58,7 @@ async function init() {
   await restoreUiState();
 
   el("btn-start-cooking")?.addEventListener("click", async () => {
+    stopSpeaking();
     const recipe = getSelectedRecipe();
     if (!recipe) return;
 
@@ -72,6 +74,7 @@ async function init() {
   });
 
   document.addEventListener("recipeSelected", async (e) => {
+    stopSpeaking();
     const recipe = e.detail;
     const startButton = el("btn-start-cooking");
     if (startButton) {
