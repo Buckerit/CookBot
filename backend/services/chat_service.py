@@ -4,8 +4,7 @@ import re
 from typing import Optional, AsyncIterator
 from pathlib import Path
 
-from sqlalchemy import select
-
+from backend.config import settings
 from backend.db import async_session_factory, SessionRow
 from backend.dependencies import get_openai_client
 from backend.models.chat import ChatMessage, ChatSession
